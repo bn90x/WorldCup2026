@@ -456,54 +456,51 @@ async function fetchLiveOdds() {
   const statusEl = document.getElementById('oddsStatus');
   if(statusEl) statusEl.textContent = 'Fetching live Polymarket odds…';
   try {
+    // Directly fetch the known Polymarket URL — no search discovery
     const res = await fetch('/api/proxy', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 4000,
+        max_tokens: 3000,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        system: 'You are a data extraction assistant. Search Polymarket and return ONLY a valid JSON object. No markdown, no explanation.',
+        system: 'You are a data extraction assistant. Fetch the exact URL provided and extract match odds. Return ONLY a valid JSON object — no markdown, no explanation.',
         messages: [{
           role: 'user',
-          content: `Search polymarket.com/sports/world-cup/games for current 2026 FIFA World Cup group stage match odds. Today is ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}.
+          content: `Fetch this exact page and extract World Cup group stage match odds:
+https://polymarket.com/sports/world-cup/games
 
-Return ONLY this JSON (no markdown fences):
-{"fetchedAt":"ISO timestamp","matches":{"Team1_Team2":{"date":"Jun DD","h":67,"d":22,"a":13}}}
+Return ONLY this JSON (no markdown):
+{"fetchedAt":"${new Date().toISOString()}","matches":{"HomeTeam_AwayTeam":{"date":"Jun DD","h":67,"d":22,"a":13}}}
 
-Key = "HomeTeam_AwayTeam". Use exactly these team name spellings:
-Mexico, South Africa, South Korea, Czechia, Canada, Bosnia-Herzegovina, Qatar, Switzerland, Brazil, Morocco, Haiti, Scotland, United States, Paraguay, Australia, Türkiye, Germany, Ivory Coast, Ecuador, Curaçao, Netherlands, Japan, Sweden, Tunisia, Belgium, Egypt, Iran, New Zealand, Spain, Cape Verde, Saudi Arabia, Uruguay, France, Senegal, Iraq, Norway, Argentina, Algeria, Austria, Jordan, Portugal, DR Congo, Uzbekistan, Colombia, England, Croatia, Ghana, Panama.
-
-h=home win%, d=draw%, a=away win% as integers. Include all 36 group stage games. For completed matches use 100/0/0 for winner.`
+Team name spellings: Mexico, South Africa, South Korea, Czechia, Canada, Bosnia-Herzegovina, Qatar, Switzerland, Brazil, Morocco, Haiti, Scotland, United States, Paraguay, Australia, Turkiye, Germany, Ivory Coast, Ecuador, Curacao, Netherlands, Japan, Sweden, Tunisia, Belgium, Egypt, Iran, New Zealand, Spain, Cape Verde, Saudi Arabia, Uruguay, France, Senegal, Iraq, Norway, Argentina, Algeria, Austria, Jordan, Portugal, DR Congo, Uzbekistan, Colombia, England, Croatia, Ghana, Panama.
+h=home win%, d=draw%, a=away win% as integers. Include all 36 group stage games.`
         }]
       })
     });
     const data = await res.json();
     const textBlocks = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-    const clean = textBlocks.replace(/```json|```/g, '').trim();
-    const jsonMatch = clean.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No JSON found in response');
+    const jsonMatch = textBlocks.replace(/\`\`\`json|\`\`\`/g,'').match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON in odds response');
     const parsed = JSON.parse(jsonMatch[0]);
     if (parsed.matches && Object.keys(parsed.matches).length > 10) {
       MATCH_ODDS = {...MATCH_ODDS_FALLBACK, ...parsed.matches};
       oddsLastFetched = parsed.fetchedAt || new Date().toISOString();
       oddsFetchStatus = 'live';
       const count = Object.keys(parsed.matches).length;
-      if(statusEl) statusEl.innerHTML = `<span style="color:var(--green)">&#9679; Live</span> Polymarket odds · ${count} matches · ${new Date(oddsLastFetched).toLocaleTimeString()}`;
-      // Re-render any open team page's match odds section
+      if(statusEl) statusEl.innerHTML = '<span style="color:var(--green)">&#9679; Live</span> Polymarket odds · ' + count + ' matches · ' + new Date(oddsLastFetched).toLocaleTimeString();
       const teamOddsSection = document.getElementById('teamMatchOdds');
-      if(teamOddsSection && window._currentTeam) {
-        teamOddsSection.innerHTML = buildMatchOddsHtml(window._currentTeam);
-      }
+      if(teamOddsSection && window._currentTeam) teamOddsSection.innerHTML = buildMatchOddsHtml(window._currentTeam);
     } else {
-      throw new Error('Insufficient matches returned: ' + Object.keys(parsed.matches||{}).length);
+      throw new Error('Only ' + Object.keys(parsed.matches||{}).length + ' matches returned');
     }
   } catch(err) {
     oddsFetchStatus = 'fallback';
-    console.warn('[WC2026] Live odds fetch failed, using fallback:', err.message);
-    if(statusEl) statusEl.innerHTML = `<span style="color:var(--orange)">&#9679; Cached</span> Stored odds (live fetch failed: ${err.message.slice(0,60)})`;
+    console.warn('[WC2026] Odds fetch failed:', err.message);
+    if(statusEl) statusEl.innerHTML = '<span style="color:var(--orange)">&#9679; Cached</span> Stored odds · ' + err.message.slice(0,50);
   }
 }
+
 
 // ─── TEAM DATA ───
 const WC_DATA = {
@@ -661,32 +658,53 @@ function showTeam(name) {
   loadTeamData(team);
 }
 
+// Cache loaded team data — revisiting a team is instant and costs zero tokens
+const teamDataCache = {};
+
 async function loadTeamData(team) {
+  // Serve from cache if available
+  if (teamDataCache[team.name]) {
+    renderTeamPage(team, teamDataCache[team.name]);
+    return;
+  }
+
   try {
     const groupTeams = WC_DATA.groups.find(g=>g.letter===team.group).teams.map(t=>t.name).join(', ');
 
+    // Single API call — tell the model exactly which URLs to fetch
+    // rather than doing open-ended search discovery
     const res = await fetch('/api/proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 5000,
+        max_tokens: 4000,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        system: `You are a football data assistant for a 2026 World Cup portal. Search the web for accurate squad and lineup information, then return ONLY a single valid JSON object with no markdown, no explanation, no text before or after. The entire response must be parseable by JSON.parse().`,
+        system: 'You are a football data assistant. Fetch the exact URLs provided — do not do open-ended searches. Extract only the relevant team section. Return ONLY a raw JSON object parseable by JSON.parse(). No markdown, no explanation, no text outside the JSON.',
         messages: [{
           role: 'user',
-          content: `Search for ${team.name}'s 2026 FIFA World Cup squad, projected starting XI (check the Guardian's player guide at https://www.theguardian.com/football/ng-interactive/2026/jun/04/world-cup-2026-complete-player-guide), manager, formation, and recent results. Then return this JSON:
+          content: `Fetch these two URLs to gather data about ${team.name} for a 2026 World Cup portal:
 
+1. GUARDIAN PLAYER GUIDE (fetch this exact URL, find the ${team.name} section):
+https://www.theguardian.com/football/ng-interactive/2026/jun/04/world-cup-2026-complete-player-guide
+Extract: manager, formation, projected starting XI with positions and clubs, squad list.
+
+2. RECENT RESULTS (fetch this exact URL):
+https://www.transfermarkt.com/schnellsuche/ergebnis/schnellsuche?query=${encodeURIComponent(team.name)}&Spieler_page=0
+Or search: "${team.name} football results 2025 2026 site:bbc.com OR site:espn.com OR site:transfermarkt.com"
+Extract: last 5 match results with scores, opponents, dates, competitions.
+
+Then return ONLY this JSON for ${team.name} (Group ${team.group}: ${groupTeams}):
 {"summary":"2 sentences","manager":"name","style":"4 words","formation":"4-3-3","recentResults":[{"date":"MMM DD","opponent":"x","score":"1-0","result":"W","competition":"x","home":true}],"upcomingMatches":[{"date":"Jun DD","opponent":"x","venue":"City"}],"lineup":[{"name":"Surname","pos":"GK","role":"GK","x":50,"y":88,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"DEF","role":"RB","x":82,"y":68,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"DEF","role":"CB","x":62,"y":68,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"DEF","role":"CB","x":38,"y":68,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"DEF","role":"LB","x":18,"y":68,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"MID","role":"CM","x":68,"y":48,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"MID","role":"CM","x":50,"y":45,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"MID","role":"CM","x":32,"y":48,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"FWD","role":"RW","x":78,"y":25,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"FWD","role":"ST","x":50,"y":20,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"FWD","role":"LW","x":22,"y":25,"club":"x","age":28,"rating":80}],"squad":[{"name":"Full Name","pos":"GK","age":28,"club":"x","rating":82,"grade":"B","caps":30,"keyPlayer":false}],"tournamentOdds":{"advanceGroup":75,"makeR16":60,"winTournament":${team.polyOdds}},"groupOdds":{"win":50,"draw":25,"loss":25}}
 
-Fill in real data for ${team.name} (Group ${team.group}: ${groupTeams}). Rules:
-- lineup: 11 players matching formation, use Guardian's projected XI where available, x/y as pitch % coords (y=88 GK near bottom, y=20 forwards near top)
-- lineup players must use surname only in "name" field and must all appear in squad
-- squad: 16 real players from official FIFA squad with accurate clubs/ages
-- recentResults: exactly 5 real matches from 2025-2026
-- upcomingMatches: exactly 3 Group ${team.group} WC matches vs correct opponents
-- rating 60-99, grade: S+ A B C D
-- Return raw JSON only — no markdown fences, no explanation`
+Rules:
+- lineup: use Guardian's projected XI, exactly 11 players, x/y as pitch % (y=88 GK at bottom, y=20 forwards at top), adjust x positions for the actual formation shape
+- All lineup players must appear in squad using surname only in lineup "name" field
+- squad: 16 real players from official FIFA 26-man squad
+- recentResults: exactly 5, real 2025-2026 results
+- upcomingMatches: exactly 3 Group ${team.group} matches vs ${groupTeams}
+- rating 60-99, grade: S+ A B C D, keyPlayer true for 3-4 stars
+- Raw JSON only — no markdown fences`
         }]
       })
     });
@@ -695,13 +713,17 @@ Fill in real data for ${team.name} (Group ${team.group}: ${groupTeams}). Rules:
     if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
     const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-    if (!text) throw new Error('Empty response from API. Stop_reason: ' + data.stop_reason);
+    if (!text) throw new Error('Empty response. stop_reason: ' + data.stop_reason);
 
     const clean = text.replace(/```json|```/g, '').trim();
     const jsonMatch = clean.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No JSON in response. Got: ' + clean.slice(0, 150));
+    if (!jsonMatch) throw new Error('No JSON found. Got: ' + clean.slice(0, 200));
 
     const parsed = JSON.parse(jsonMatch[0]);
+
+    // Cache for instant revisits
+    teamDataCache[team.name] = parsed;
+
     renderTeamPage(team, parsed);
   } catch(e) {
     document.getElementById('teamContent').innerHTML = `<div class="error-msg">Failed to load team data: ${e.message}</div>`;
