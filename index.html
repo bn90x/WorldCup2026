@@ -1309,6 +1309,11 @@ async function prepopulateAll() {
         status.textContent = 'Players: ' + (pDone+pSkipped+pFailed) + ' done (' + pSkipped + ' cached)…';
         continue;
       }
+      // Pause 30s every 10 players to avoid rate limits
+      if ((pDone + pFailed) > 0 && (pDone + pFailed) % 10 === 0) {
+        status.textContent = 'Pausing 30s to avoid rate limits… (' + (pDone+pSkipped+pFailed) + ' players done)';
+        await new Promise(r => setTimeout(r, 30000));
+      }
       status.textContent = 'Fetching player: ' + player.name + ' (' + team.name + ')…';
       try {
         const res = await fetch('/api/proxy', {
@@ -1337,7 +1342,7 @@ async function prepopulateAll() {
         console.warn('Player fetch failed:', player.name, e.message);
         pFailed++;
       }
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, 4000));
     }
   }
 
