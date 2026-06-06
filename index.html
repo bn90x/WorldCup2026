@@ -460,7 +460,7 @@ async function fetchLiveOdds() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4000,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         system: 'You are a data extraction assistant. Search Polymarket and return ONLY a valid JSON object. No markdown, no explanation.',
@@ -669,7 +669,7 @@ async function loadTeamData(team) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 5000,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         system: `You are a football data assistant for a 2026 World Cup portal. Search the web for accurate squad and lineup information, then return ONLY a single valid JSON object with no markdown, no explanation, no text before or after. The entire response must be parseable by JSON.parse().`,
@@ -1005,7 +1005,7 @@ async function fetchPlayerCard(name, pos, role, club, age, teamName, cacheKey) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 400,
         system: 'You are a football scout. Return ONLY valid JSON, no markdown.',
         messages: [{
@@ -1098,7 +1098,7 @@ async function fetchSquadExpand(pd, cacheKey, innerId) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 400,
         system: 'You are a football scout. Return ONLY valid JSON, no markdown.',
         messages: [{
