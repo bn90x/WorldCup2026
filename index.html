@@ -356,10 +356,6 @@
 </div>
 
 <script>
-// ─── ANTHROPIC API KEY ───────────────────────────────────────────────────────
-// Note: keep this file private if sharing — key is visible in source
-const ANTHROPIC_KEY = 'YOUR_API_KEY_HERE';
-
 // ─── MATCH ODDS STATUS BAR ───
 // Injected into header after DOM ready
 
@@ -460,14 +456,9 @@ async function fetchLiveOdds() {
   const statusEl = document.getElementById('oddsStatus');
   if(statusEl) statusEl.textContent = 'Fetching live Polymarket odds…';
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/proxy', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'web-search-2025-03-05',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
@@ -675,14 +666,9 @@ async function loadTeamData(team) {
     const groupTeams = WC_DATA.groups.find(g=>g.letter===team.group).teams.map(t=>t.name).join(', ');
 
     // Step 1: fetch Guardian player guide + squad info via web search
-    const searchRes = await fetch('https://api.anthropic.com/v1/messages', {
+    const searchRes = await fetch('/api/proxy', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'web-search-2025-03-05',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 2000,
@@ -754,14 +740,9 @@ Critical rules:
 - rating: 60-99, grade: S+ A B C D
 - JSON must be complete and valid`;
 
-    const synthRes = await fetch('https://api.anthropic.com/v1/messages', {
+    const synthRes = await fetch('/api/proxy', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'web-search-2025-03-05',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
@@ -1074,14 +1055,9 @@ function showPlayerCard(name, pos, role, club, age, rating, teamName, anchorEl) 
 async function fetchPlayerCard(name, pos, role, club, age, teamName, cacheKey) {
   const bodyEl = document.getElementById('pcBody');
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/proxy', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'web-search-2025-03-05',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 400,
@@ -1172,14 +1148,9 @@ function toggleSquadExpand(rowId, expandId, rowEl) {
 
 async function fetchSquadExpand(pd, cacheKey, innerId) {
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/proxy', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'web-search-2025-03-05',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 400,
