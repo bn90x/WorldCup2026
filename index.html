@@ -999,39 +999,32 @@ function showPlayerCard(name, pos, role, club, age, rating, teamName, anchorEl) 
 }
 
 async function fetchPlayerCard(name, pos, role, club, age, teamName, cacheKey) {
-  const bodyEl = document.getElementById('pcBody');
   try {
     const res = await fetch('/api/proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 400,
-        system: 'You are a football scout. Return ONLY valid JSON, no markdown.',
+        max_tokens: 1000,
+        system: 'You are a football scout. Return ONLY a valid JSON object. No markdown fences, no explanation, no text before or after the JSON.',
         messages: [{
           role: 'user',
-          content: `Write a concise scout report for ${name}, ${pos}/${role} at ${club} (age ${age}), playing for ${teamName} at the 2026 World Cup.
-
-Return this JSON exactly:
-{
-  "summary": "2 sentences on playing style and role in this team",
-  "strengths": "1 crisp sentence, max 15 words",
-  "weaknesses": "1 crisp sentence, max 15 words",
-  "wcForm": "1 sentence on recent international form / qualifying",
-  "watchFor": "1 sentence on what to look for at this tournament"
-}`
+          content: `Scout report for ${name}, ${pos} at ${club} (age ${age}), playing for ${teamName} at the 2026 World Cup. Return raw JSON only:
+{"summary":"2 sentences on style and role","strengths":"max 15 words","weaknesses":"max 15 words","wcForm":"1 sentence on recent form","watchFor":"1 sentence for this tournament"}`
         }]
       })
     });
     const data = await res.json();
+    if (data.error) throw new Error(JSON.stringify(data.error));
     const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-    const clean = text.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON: ' + text.slice(0, 100));
+    const parsed = JSON.parse(jsonMatch[0]);
     playerCache[cacheKey] = parsed;
     renderPlayerCard(parsed, false);
   } catch(err) {
     const bodyEl2 = document.getElementById('pcBody');
-    if(bodyEl2) bodyEl2.innerHTML = `<p style="color:var(--muted);font-size:0.78rem;padding:0.5rem 0">Could not load player data.</p>`;
+    if(bodyEl2) bodyEl2.innerHTML = `<p style="color:var(--muted);font-size:0.78rem;padding:0.5rem 0">Could not load player data: ${err.message}</p>`;
   }
 }
 
@@ -1099,37 +1092,29 @@ async function fetchSquadExpand(pd, cacheKey, innerId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 400,
-        system: 'You are a football scout. Return ONLY valid JSON, no markdown.',
+        max_tokens: 1000,
+        system: 'You are a football scout. Return ONLY a valid JSON object. No markdown fences, no explanation, no text before or after the JSON.',
         messages: [{
           role: 'user',
-          content: `Write a concise scout report for ${pd.name}, ${pd.pos} at ${pd.club} (age ${pd.age}), playing for ${pd.teamName} at the 2026 World Cup.
-
-Return this JSON exactly:
-{
-  "summary": "2 sentences on playing style and role in this team",
-  "strengths": "1 crisp sentence, max 15 words",
-  "weaknesses": "1 crisp sentence, max 15 words",
-  "wcForm": "1 sentence on recent international form / qualifying",
-  "watchFor": "1 sentence on what to look for at this tournament"
-}`
+          content: `Scout report for ${pd.name}, ${pd.pos} at ${pd.club} (age ${pd.age}), playing for ${pd.teamName} at the 2026 World Cup. Return raw JSON only:
+{"summary":"2 sentences on style and role","strengths":"max 15 words","weaknesses":"max 15 words","wcForm":"1 sentence on recent form","watchFor":"1 sentence for this tournament"}`
         }]
       })
     });
     const data = await res.json();
+    if (data.error) throw new Error(JSON.stringify(data.error));
     const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-    const clean = text.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON: ' + text.slice(0, 100));
+    const parsed = JSON.parse(jsonMatch[0]);
     playerCache[cacheKey] = parsed;
-    // Only render if the expand row is still open
     const inner = document.getElementById(innerId);
     if (inner) renderSquadExpand(innerId, parsed, false);
   } catch(err) {
     const inner = document.getElementById(innerId);
-    if (inner) inner.innerHTML = '<div style="color:var(--muted);font-size:0.76rem;padding:0.25rem 0">Could not load scout report.</div>';
+    if (inner) inner.innerHTML = `<div style="color:var(--muted);font-size:0.76rem;padding:0.25rem 0">Could not load scout report: ${err.message}</div>`;
   }
 }
-
 function renderSquadExpand(innerId, d, fromCache) {
   const inner = document.getElementById(innerId);
   if (!inner) return;
