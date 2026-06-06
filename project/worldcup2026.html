@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Cup 2026 Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0e1a;--bg2:#111827;--bg3:#1a2332;--card:#1e2d42;
+    --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);
+    --text:#f0f4ff;--muted:#8898aa;
+    --accent:#e8c84a;--accent2:#3b82f6;
+    --green:#22c55e;--red:#ef4444;--orange:#f97316;
+    --advance:rgba(34,197,94,0.15);--potential:rgba(249,115,22,0.1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;}
+  header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 2rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:1.5rem;height:56px;}
+  .logo{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:2px;color:var(--accent);cursor:pointer;white-space:nowrap;}
+  .logo span{color:var(--text);}
+  .breadcrumb{display:flex;align-items:center;gap:0.5rem;font-size:0.8rem;color:var(--muted);flex:1;overflow:hidden;}
+  .breadcrumb .sep{opacity:0.4;}
+  .breadcrumb .current{color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .header-badge{background:rgba(232,200,74,0.15);border:1px solid rgba(232,200,74,0.3);color:var(--accent);font-size:0.7rem;font-weight:600;padding:3px 10px;border-radius:20px;letter-spacing:1px;white-space:nowrap;}
+  .view{display:none;}.view.active{display:block;}
+
+  /* HOME */
+  .home-hero{background:linear-gradient(135deg,#0f1c2e 0%,#1a2332 50%,#0e1928 100%);padding:3rem 2rem 2rem;text-align:center;border-bottom:1px solid var(--border);position:relative;overflow:hidden;}
+  .home-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(232,200,74,0.08) 0%,transparent 70%);}
+  .home-hero h1{font-family:'Bebas Neue',sans-serif;font-size:3.5rem;letter-spacing:4px;line-height:1;position:relative;}
+  .home-hero h1 em{color:var(--accent);font-style:normal;}
+  .home-hero p{color:var(--muted);margin-top:0.5rem;font-size:0.9rem;position:relative;}
+  .home-stats{display:flex;justify-content:center;gap:2rem;margin-top:1.5rem;position:relative;}
+  .home-stat .num{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--accent);line-height:1;}
+  .home-stat .lbl{font-size:0.7rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+  .groups-container{padding:2rem;max-width:1400px;margin:0 auto;}
+  .groups-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.25rem;}
+  .group-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color 0.2s,transform 0.2s;}
+  .group-card:hover{border-color:var(--border2);transform:translateY(-2px);}
+  .group-header{background:var(--bg3);padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+  .group-letter{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--accent);letter-spacing:2px;}
+  .group-dates{font-size:0.7rem;color:var(--muted);}
+  .standings-table{width:100%;border-collapse:collapse;}
+  .standings-table th{font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;padding:0.4rem 0.75rem;text-align:center;font-weight:500;}
+  .standings-table th:first-child{text-align:left;padding-left:1rem;}
+  .standings-table td{padding:0.5rem 0.75rem;font-size:0.82rem;text-align:center;border-top:1px solid var(--border);}
+  .standings-table td:first-child{text-align:left;padding-left:1rem;}
+  .team-row{cursor:pointer;transition:background 0.15s;}
+  .team-row:hover{background:rgba(255,255,255,0.04);}
+  .team-row.advance-zone{background:var(--advance);}
+  .team-row.potential-zone{background:var(--potential);}
+  .team-name-cell{display:flex;align-items:center;gap:0.5rem;}
+  .team-flag{font-size:1.1rem;line-height:1;}
+  .team-name{font-weight:500;}
+  .team-sub{font-size:0.68rem;color:var(--muted);}
+  .pts{font-weight:700;color:var(--text);}
+  .gd{color:var(--muted);}
+  .gd.pos{color:var(--green);}
+  .gd.neg{color:var(--red);}
+  .zone-legend{padding:0.5rem 1rem;display:flex;gap:1rem;font-size:0.65rem;color:var(--muted);border-top:1px solid var(--border);}
+  .zone-dot{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle;}
+  .search-bar{display:flex;align-items:center;gap:0.75rem;margin-bottom:1.5rem;}
+  .search-input{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:0.5rem 1rem;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;flex:1;transition:border-color 0.2s;}
+  .search-input:focus{border-color:var(--accent2);}
+  .search-input::placeholder{color:var(--muted);}
+  .filter-tabs{display:flex;gap:0.5rem;margin-bottom:1.25rem;flex-wrap:wrap;}
+  .filter-tab{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:0.3rem 0.75rem;font-size:0.75rem;color:var(--muted);cursor:pointer;transition:all 0.15s;}
+  .filter-tab:hover{border-color:var(--border2);color:var(--text);}
+  .filter-tab.active{background:rgba(232,200,74,0.15);border-color:rgba(232,200,74,0.4);color:var(--accent);}
+
+  /* TEAM PAGE */
+  .team-page{padding:1.5rem 2rem;max-width:1100px;margin:0 auto;}
+  .team-hero{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:1.5rem 2rem;display:flex;align-items:flex-start;gap:2rem;margin-bottom:1.5rem;flex-wrap:wrap;}
+  .team-hero-flag{font-size:4rem;line-height:1;}
+  .team-hero-info{flex:1;min-width:200px;}
+  .team-hero-name{font-family:'Bebas Neue',sans-serif;font-size:2.5rem;letter-spacing:3px;line-height:1;}
+  .team-hero-meta{color:var(--muted);font-size:0.82rem;margin-top:0.3rem;display:flex;gap:1rem;flex-wrap:wrap;}
+  .team-odds-bar{display:flex;gap:0.75rem;flex-wrap:wrap;}
+  .odds-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:0.75rem 1.25rem;text-align:center;min-width:80px;}
+  .odds-pct{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--accent);}
+  .odds-label{font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:0.1rem;}
+  .odds-source{font-size:0.62rem;color:var(--accent2);margin-top:2px;}
+  .team-layout{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;}
+  @media(max-width:700px){.team-layout{grid-template-columns:1fr;}}
+  .section-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .section-card.full{grid-column:1/-1;}
+  .section-header{background:var(--bg3);padding:0.6rem 1rem;font-size:0.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .section-header .badge{background:rgba(59,130,246,0.2);color:var(--accent2);font-size:0.6rem;padding:2px 8px;border-radius:10px;text-transform:none;letter-spacing:0;}
+  .section-body{padding:0.75rem 1rem;}
+  .result-row{display:flex;align-items:center;gap:0.75rem;padding:0.45rem 0;border-bottom:1px solid var(--border);font-size:0.82rem;}
+  .result-row:last-child{border-bottom:none;}
+  .result-badge{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;flex-shrink:0;}
+  .result-badge.W{background:rgba(34,197,94,0.2);color:var(--green);}
+  .result-badge.D{background:rgba(232,200,74,0.2);color:var(--accent);}
+  .result-badge.L{background:rgba(239,68,68,0.2);color:var(--red);}
+  .result-badge.U{background:rgba(139,148,158,0.2);color:var(--muted);}
+  .result-teams{flex:1;}
+  .result-score{font-weight:700;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;}
+  .result-date{font-size:0.68rem;color:var(--muted);}
+  .result-comp{font-size:0.68rem;color:var(--accent2);}
+
+  /* MATCH ODDS CARD */
+  .match-odds-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:0.75rem 1rem;margin-bottom:0.75rem;}
+  .match-odds-card:last-child{margin-bottom:0;}
+  .match-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;}
+  .match-teams{font-size:0.85rem;font-weight:500;}
+  .match-meta{font-size:0.68rem;color:var(--muted);}
+  .match-pm-badge{font-size:0.6rem;background:rgba(59,130,246,0.15);color:var(--accent2);padding:2px 7px;border-radius:10px;border:1px solid rgba(59,130,246,0.25);}
+  .odds-bar{display:grid;grid-template-columns:1fr auto 1fr;gap:0.4rem;align-items:center;}
+  .odds-team{text-align:center;}
+  .odds-team-name{font-size:0.68rem;color:var(--muted);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .odds-team-pct{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;line-height:1;}
+  .odds-team-pct.fav{color:var(--green);}
+  .odds-team-pct.dog{color:var(--muted);}
+  .odds-draw-center{text-align:center;}
+  .odds-draw-pct{font-size:0.75rem;font-weight:600;color:var(--accent);}
+  .odds-draw-lbl{font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+  .odds-visual-bar{display:flex;height:5px;border-radius:3px;overflow:hidden;margin-top:0.5rem;}
+  .odds-vis-home{background:var(--green);}
+  .odds-vis-draw{background:var(--accent);opacity:0.7;}
+  .odds-vis-away{background:var(--red);opacity:0.7;}
+
+  /* LINEUP PITCH */
+  .pitch-container{background:#1a3a1a;border-radius:12px;padding:1.25rem;position:relative;overflow:hidden;}
+  .pitch-container::before{content:'';position:absolute;inset:0;border:2px solid rgba(255,255,255,0.06);border-radius:12px;pointer-events:none;}
+  .pitch-svg{width:100%;display:block;}
+  .player-dot-group{cursor:default;}
+  .player-circle{transition:r 0.2s;}
+  .player-name-label{font-size:9px;fill:#fff;text-anchor:middle;font-family:'Inter',sans-serif;font-weight:500;pointer-events:none;}
+  .player-pos-label{font-size:7px;fill:rgba(255,255,255,0.6);text-anchor:middle;font-family:'Inter',sans-serif;pointer-events:none;}
+  .lineup-formation{font-size:0.7rem;color:var(--muted);text-align:center;margin-top:0.5rem;letter-spacing:1px;}
+
+  /* SQUAD TABLE */
+  .squad-table{width:100%;border-collapse:collapse;}
+  .squad-table th{font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;padding:0.4rem 0.6rem;text-align:left;font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap;}
+  .squad-table td{padding:0.4rem 0.6rem;font-size:0.78rem;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
+  .squad-table tr:last-child td{border-bottom:none;}
+  .pos-badge{display:inline-block;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:0.5px;white-space:nowrap;}
+  .pos-GK{background:rgba(249,115,22,0.2);color:#f97316;}
+  .pos-DEF{background:rgba(59,130,246,0.2);color:#60a5fa;}
+  .pos-MID{background:rgba(139,92,246,0.2);color:#a78bfa;}
+  .pos-FWD{background:rgba(34,197,94,0.2);color:#4ade80;}
+  .rating-bar{display:flex;align-items:center;gap:0.4rem;}
+  .rating-num{font-weight:700;font-size:0.8rem;min-width:22px;}
+  .rating-track{height:4px;background:rgba(255,255,255,0.1);border-radius:2px;flex:1;max-width:60px;overflow:hidden;}
+  .rating-fill{height:100%;border-radius:2px;}
+  .grade-badge{display:inline-block;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:4px;text-align:center;min-width:24px;}
+  .grade-Sp{background:rgba(232,200,74,0.3);color:var(--accent);border:1px solid rgba(232,200,74,0.4);}
+  .grade-A{background:rgba(34,197,94,0.2);color:#4ade80;}
+  .grade-B{background:rgba(59,130,246,0.2);color:#60a5fa;}
+  .grade-C{background:rgba(139,148,158,0.15);color:var(--muted);}
+  .grade-D{background:rgba(239,68,68,0.15);color:#f87171;}
+  .club-name{color:var(--muted);font-size:0.72rem;}
+  .player-name-td{font-weight:500;}
+  .loading-state{padding:3rem;text-align:center;color:var(--muted);}
+  .spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .error-msg{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:1rem;color:#fca5a5;font-size:0.82rem;}
+  .back-btn{display:inline-flex;align-items:center;gap:0.4rem;color:var(--muted);font-size:0.8rem;cursor:pointer;padding:0.4rem 0.75rem;border-radius:6px;transition:all 0.15s;border:1px solid var(--border);background:var(--card);margin-bottom:1.25rem;}
+  .back-btn:hover{color:var(--text);border-color:var(--border2);}
+
+  /* PLAYER CARD OVERLAY */
+  #playerCard {
+    display:none;
+    position:fixed;
+    z-index:500;
+    width:300px;
+    background:#1a2740;
+    border:1px solid rgba(232,200,74,0.35);
+    border-radius:14px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.6);
+    overflow:hidden;
+    animation:cardIn 0.15s ease;
+  }
+  @keyframes cardIn {
+    from { opacity:0; transform:scale(0.93) translateY(6px); }
+    to   { opacity:1; transform:scale(1)    translateY(0); }
+  }
+  #playerCard.loading .pc-body { opacity:0.4; }
+  .pc-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0.75rem 1rem 0.5rem;
+    border-bottom:1px solid rgba(255,255,255,0.07);
+  }
+  .pc-name { font-size:0.95rem; font-weight:600; color:var(--text); }
+  .pc-meta { font-size:0.7rem; color:var(--muted); margin-top:1px; }
+  .pc-close {
+    width:24px; height:24px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.08);
+    border:none;
+    color:var(--muted);
+    cursor:pointer;
+    font-size:0.9rem;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+    transition:background 0.15s;
+  }
+  .pc-close:hover { background:rgba(255,255,255,0.15); color:var(--text); }
+  .pc-body { padding:0.75rem 1rem; transition:opacity 0.2s; }
+  .pc-spinner {
+    width:20px; height:20px;
+    border:2px solid rgba(255,255,255,0.1);
+    border-top-color:var(--accent);
+    border-radius:50%;
+    animation:spin 0.7s linear infinite;
+    margin:1rem auto;
+  }
+  .pc-summary {
+    font-size:0.8rem;
+    color:#c8d4e8;
+    line-height:1.6;
+    margin-bottom:0.75rem;
+  }
+  .pc-row {
+    display:grid;
+    grid-template-columns:90px 1fr;
+    gap:0.25rem 0.5rem;
+    font-size:0.76rem;
+    margin-bottom:0.35rem;
+    align-items:baseline;
+  }
+  .pc-row-label {
+    color:var(--accent);
+    font-weight:600;
+    font-size:0.68rem;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+  }
+  .pc-row-val { color:#c8d4e8; line-height:1.5; }
+  .pc-cached-badge {
+    font-size:0.6rem;
+    color:var(--accent2);
+    float:right;
+    margin-top:2px;
+  }
+
+  /* SQUAD INLINE EXPAND */
+  .squad-row { cursor:pointer; transition:background 0.15s; }
+  .squad-row:hover { background:rgba(255,255,255,0.04); }
+  .squad-row.active { background:rgba(232,200,74,0.06); }
+  .squad-expand-row { display:none; }
+  .squad-expand-row.open { display:table-row; }
+  .squad-expand-cell {
+    padding:0 0.6rem 0.75rem;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+    background:rgba(10,14,26,0.4);
+  }
+  .squad-expand-inner {
+    padding:0.65rem 0.75rem;
+    border-left:2px solid var(--accent);
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:0.3rem 1.25rem;
+  }
+  @media(max-width:600px){ .squad-expand-inner { grid-template-columns:1fr; } }
+  .squad-expand-summary {
+    grid-column:1/-1;
+    font-size:0.78rem;
+    color:#c8d4e8;
+    line-height:1.6;
+    margin-bottom:0.4rem;
+  }
+  .squad-expand-row-item {
+    display:flex;
+    gap:0.4rem;
+    font-size:0.74rem;
+    align-items:baseline;
+  }
+  .squad-expand-label {
+    color:var(--accent);
+    font-weight:600;
+    font-size:0.65rem;
+    letter-spacing:0.4px;
+    text-transform:uppercase;
+    white-space:nowrap;
+    min-width:72px;
+  }
+  .squad-expand-val { color:#c8d4e8; line-height:1.5; }
+  .squad-expand-loading {
+    grid-column:1/-1;
+    display:flex;
+    align-items:center;
+    gap:0.5rem;
+    color:var(--muted);
+    font-size:0.76rem;
+    padding:0.25rem 0;
+  }
+  .squad-mini-spinner {
+    width:14px; height:14px;
+    border:1.5px solid rgba(255,255,255,0.1);
+    border-top-color:var(--accent);
+    border-radius:50%;
+    animation:spin 0.7s linear infinite;
+    flex-shrink:0;
+  }
+  .squad-chevron {
+    display:inline-block;
+    font-size:0.6rem;
+    color:var(--muted);
+    margin-left:0.3rem;
+    transition:transform 0.2s;
+    vertical-align:middle;
+  }
+  .squad-row.active .squad-chevron { transform:rotate(180deg); color:var(--accent); }
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:var(--bg);}
+  ::-webkit-scrollbar-thumb{background:var(--card);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo" onclick="showHome()">WC<span>2026</span></div>
+  <div class="breadcrumb" id="breadcrumb"><span>All Groups</span></div>
+  <div id="oddsStatus" style="font-size:0.68rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;flex-shrink:1;">Loading odds…</div><div class="header-badge">LIVE</div>
+</header>
+
+<!-- HOME VIEW -->
+<div class="view active" id="view-home">
+  <div class="home-hero">
+    <h1>FIFA WORLD CUP <em>2026</em></h1>
+    <p>USA · Canada · Mexico &nbsp;|&nbsp; June 11 – July 19, 2026 &nbsp;|&nbsp; 48 teams · 12 groups · 104 matches</p>
+    <div class="home-stats">
+      <div class="home-stat"><div class="num">48</div><div class="lbl">Teams</div></div>
+      <div class="home-stat"><div class="num">12</div><div class="lbl">Groups</div></div>
+      <div class="home-stat"><div class="num">104</div><div class="lbl">Matches</div></div>
+      <div class="home-stat"><div class="num">16</div><div class="lbl">Venues</div></div>
+    </div>
+  </div>
+  <div class="groups-container">
+    <div class="search-bar">
+      <input class="search-input" type="text" placeholder="Search team..." id="teamSearch" oninput="filterTeams()">
+    </div>
+    <div class="filter-tabs">
+      <div class="filter-tab active" onclick="filterConf(this,'all')">All Groups</div>
+      <div class="filter-tab" onclick="filterConf(this,'UEFA')">Europe</div>
+      <div class="filter-tab" onclick="filterConf(this,'CONMEBOL')">South America</div>
+      <div class="filter-tab" onclick="filterConf(this,'CONCACAF')">CONCACAF</div>
+      <div class="filter-tab" onclick="filterConf(this,'AFC')">Asia</div>
+      <div class="filter-tab" onclick="filterConf(this,'CAF')">Africa</div>
+    </div>
+    <div class="groups-grid" id="groupsGrid"></div>
+  </div>
+</div>
+
+<!-- TEAM VIEW -->
+<div class="view" id="view-team">
+  <div class="team-page">
+    <div class="back-btn" onclick="showHome()">← Back to Groups</div>
+    <div id="teamContent"><div class="loading-state"><div class="spinner"></div>Loading team data…</div></div>
+  </div>
+</div>
+
+<script>
+// ─── MATCH ODDS STATUS BAR ───
+// Injected into header after DOM ready
+
+// ─── LIVE ODDS FETCH via Anthropic API + web_search ───
+// Falls back to stale Jun-5 snapshot if fetch fails
+const MATCH_ODDS_FALLBACK = {
+  // Group A
+  'Mexico_South Africa':    {date:'Jun 11',h:67,d:22,a:13},
+  'South Korea_Czechia':    {date:'Jun 11',h:36,d:31,a:35},
+  'Czechia_South Africa':   {date:'Jun 18',h:52,d:28,a:22},
+  'Mexico_South Korea':     {date:'Jun 18',h:58,d:24,a:20},
+  'Czechia_Mexico':         {date:'Jun 24',h:22,d:26,a:54},
+  'South Africa_South Korea':{date:'Jun 24',h:22,d:30,a:50},
+  // Group B
+  'Canada_Bosnia-Herzegovina':{date:'Jun 12',h:53,d:26,a:22},
+  'Qatar_Switzerland':      {date:'Jun 13',h:9, d:16,a:77},
+  'Canada_Qatar':           {date:'Jun 19',h:74,d:17,a:10},
+  'Switzerland_Bosnia-Herzegovina':{date:'Jun 19',h:58,d:26,a:18},
+  'Bosnia-Herzegovina_Qatar':{date:'Jun 24',h:62,d:22,a:18},
+  'Switzerland_Canada':     {date:'Jun 24',h:40,d:28,a:34},
+  // Group C
+  'Brazil_Morocco':         {date:'Jun 13',h:61,d:23,a:18},
+  'Haiti_Scotland':         {date:'Jun 13',h:14,d:20,a:69},
+  'Brazil_Scotland':        {date:'Jun 19',h:80,d:13,a:9},
+  'Morocco_Haiti':          {date:'Jun 20',h:83,d:11,a:7},
+  'Brazil_Haiti':           {date:'Jun 25',h:93,d:5, a:3},
+  'Scotland_Morocco':       {date:'Jun 25',h:34,d:28,a:40},
+  // Group D
+  'United States_Paraguay': {date:'Jun 12',h:48,d:29,a:25},
+  'Australia_Türkiye':      {date:'Jun 14',h:20,d:27,a:55},
+  'United States_Australia':{date:'Jun 19',h:64,d:22,a:16},
+  'Türkiye_Paraguay':       {date:'Jun 20',h:56,d:27,a:19},
+  'Türkiye_United States':  {date:'Jun 25',h:35,d:28,a:39},
+  'Paraguay_Australia':     {date:'Jun 25',h:46,d:30,a:26},
+  // Group E
+  'Germany_Curaçao':        {date:'Jun 14',h:95,d:5, a:2},
+  'Ivory Coast_Ecuador':    {date:'Jun 14',h:26,d:34,a:42},
+  'Germany_Ivory Coast':    {date:'Jun 20',h:76,d:16,a:10},
+  'Ecuador_Curaçao':        {date:'Jun 20',h:83,d:11,a:7},
+  'Germany_Ecuador':        {date:'Jun 26',h:72,d:18,a:12},
+  'Ivory Coast_Curaçao':    {date:'Jun 26',h:84,d:10,a:7},
+  // Group F
+  'Netherlands_Japan':      {date:'Jun 14',h:49,d:26,a:27},
+  'Sweden_Tunisia':         {date:'Jun 14',h:51,d:29,a:22},
+  'Netherlands_Sweden':     {date:'Jun 20',h:55,d:26,a:21},
+  'Japan_Tunisia':          {date:'Jun 20',h:57,d:25,a:20},
+  'Netherlands_Tunisia':    {date:'Jun 26',h:73,d:17,a:12},
+  'Japan_Sweden':           {date:'Jun 26',h:42,d:29,a:31},
+  // Group G
+  'Belgium_Egypt':          {date:'Jun 15',h:60,d:25,a:19},
+  'Iran_New Zealand':       {date:'Jun 15',h:51,d:27,a:24},
+  'Belgium_Iran':           {date:'Jun 21',h:68,d:20,a:14},
+  'Egypt_New Zealand':      {date:'Jun 21',h:55,d:27,a:20},
+  'Belgium_New Zealand':    {date:'Jun 26',h:85,d:10,a:7},
+  'Egypt_Iran':             {date:'Jun 26',h:40,d:32,a:30},
+  // Group H
+  'Spain_Cape Verde':       {date:'Jun 15',h:90,d:8, a:5},
+  'Saudi Arabia_Uruguay':   {date:'Jun 15',h:14,d:22,a:65},
+  'Spain_Saudi Arabia':     {date:'Jun 21',h:83,d:11,a:8},
+  'Uruguay_Cape Verde':     {date:'Jun 21',h:80,d:13,a:9},
+  'Spain_Uruguay':          {date:'Jun 26',h:65,d:22,a:15},
+  'Cape Verde_Saudi Arabia':{date:'Jun 26',h:38,d:32,a:32},
+  // Group I
+  'France_Senegal':         {date:'Jun 16',h:58,d:24,a:20},
+  'Iraq_Norway':            {date:'Jun 16',h:18,d:27,a:57},
+  'France_Iraq':            {date:'Jun 22',h:87,d:9, a:6},
+  'Norway_Senegal':         {date:'Jun 22',h:44,d:30,a:28},
+  'Norway_France':          {date:'Jun 26',h:28,d:26,a:48},
+  'Senegal_Iraq':           {date:'Jun 26',h:71,d:19,a:12},
+  // Group J
+  'Argentina_Algeria':      {date:'Jun 16',h:78,d:14,a:10},
+  'Austria_Jordan':         {date:'Jun 16',h:62,d:24,a:16},
+  'Argentina_Austria':      {date:'Jun 22',h:72,d:18,a:12},
+  'Jordan_Algeria':         {date:'Jun 22',h:34,d:32,a:36},
+  'Argentina_Jordan':       {date:'Jun 27',h:86,d:9, a:7},
+  'Algeria_Austria':        {date:'Jun 27',h:30,d:30,a:42},
+  // Group K
+  'Portugal_DR Congo':      {date:'Jun 17',h:82,d:12,a:8},
+  'Uzbekistan_Colombia':    {date:'Jun 17',h:20,d:27,a:55},
+  'Portugal_Uzbekistan':    {date:'Jun 23',h:84,d:10,a:8},
+  'Colombia_DR Congo':      {date:'Jun 23',h:67,d:20,a:15},
+  'Colombia_Portugal':      {date:'Jun 27',h:26,d:24,a:52},
+  'DR Congo_Uzbekistan':    {date:'Jun 27',h:48,d:30,a:24},
+  // Group L
+  'England_Croatia':        {date:'Jun 17',h:60,d:25,a:17},
+  'Ghana_Panama':           {date:'Jun 17',h:44,d:30,a:28},
+  'England_Ghana':          {date:'Jun 23',h:74,d:16,a:12},
+  'Panama_Croatia':         {date:'Jun 23',h:22,d:28,a:52},
+  'England_Panama':         {date:'Jun 27',h:88,d:8, a:6},
+  'Croatia_Ghana':          {date:'Jun 27',h:52,d:28,a:22},
+};
+
+let MATCH_ODDS = {...MATCH_ODDS_FALLBACK};
+let oddsLastFetched = null;
+let oddsFetchStatus = 'pending';
+
+async function fetchLiveOdds() {
+  const statusEl = document.getElementById('oddsStatus');
+  if(statusEl) statusEl.textContent = 'Fetching live Polymarket odds…';
+  try {
+    const res = await fetch('/api/proxy', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        system: 'You are a data extraction assistant. Search Polymarket and return ONLY a valid JSON object. No markdown, no explanation.',
+        messages: [{
+          role: 'user',
+          content: `Search polymarket.com/sports/world-cup/games for current 2026 FIFA World Cup group stage match odds. Today is ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}.
+
+Return ONLY this JSON (no markdown fences):
+{"fetchedAt":"ISO timestamp","matches":{"Team1_Team2":{"date":"Jun DD","h":67,"d":22,"a":13}}}
+
+Key = "HomeTeam_AwayTeam". Use exactly these team name spellings:
+Mexico, South Africa, South Korea, Czechia, Canada, Bosnia-Herzegovina, Qatar, Switzerland, Brazil, Morocco, Haiti, Scotland, United States, Paraguay, Australia, Türkiye, Germany, Ivory Coast, Ecuador, Curaçao, Netherlands, Japan, Sweden, Tunisia, Belgium, Egypt, Iran, New Zealand, Spain, Cape Verde, Saudi Arabia, Uruguay, France, Senegal, Iraq, Norway, Argentina, Algeria, Austria, Jordan, Portugal, DR Congo, Uzbekistan, Colombia, England, Croatia, Ghana, Panama.
+
+h=home win%, d=draw%, a=away win% as integers. Include all 36 group stage games. For completed matches use 100/0/0 for winner.`
+        }]
+      })
+    });
+    const data = await res.json();
+    const textBlocks = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const clean = textBlocks.replace(/```json|```/g, '').trim();
+    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found in response');
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (parsed.matches && Object.keys(parsed.matches).length > 10) {
+      MATCH_ODDS = {...MATCH_ODDS_FALLBACK, ...parsed.matches};
+      oddsLastFetched = parsed.fetchedAt || new Date().toISOString();
+      oddsFetchStatus = 'live';
+      const count = Object.keys(parsed.matches).length;
+      if(statusEl) statusEl.innerHTML = `<span style="color:var(--green)">&#9679; Live</span> Polymarket odds · ${count} matches · ${new Date(oddsLastFetched).toLocaleTimeString()}`;
+      // Re-render any open team page's match odds section
+      const teamOddsSection = document.getElementById('teamMatchOdds');
+      if(teamOddsSection && window._currentTeam) {
+        teamOddsSection.innerHTML = buildMatchOddsHtml(window._currentTeam);
+      }
+    } else {
+      throw new Error('Insufficient matches returned: ' + Object.keys(parsed.matches||{}).length);
+    }
+  } catch(err) {
+    oddsFetchStatus = 'fallback';
+    console.warn('[WC2026] Live odds fetch failed, using fallback:', err.message);
+    if(statusEl) statusEl.innerHTML = `<span style="color:var(--orange)">&#9679; Cached</span> Stored odds (live fetch failed: ${err.message.slice(0,60)})`;
+  }
+}
+
+// ─── TEAM DATA ───
+const WC_DATA = {
+  groups:[
+    {letter:'A',dates:'Jun 11–24',teams:[
+      {name:'Mexico',flag:'🇲🇽',conf:'CONCACAF',host:true,fifa:15,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:4.0},
+      {name:'South Korea',flag:'🇰🇷',conf:'AFC',host:false,fifa:22,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:1.5},
+      {name:'Czechia',flag:'🇨🇿',conf:'UEFA',host:false,fifa:40,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.8},
+      {name:'South Africa',flag:'🇿🇦',conf:'CAF',host:false,fifa:65,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.3},
+    ]},
+    {letter:'B',dates:'Jun 12–24',teams:[
+      {name:'Canada',flag:'🇨🇦',conf:'CONCACAF',host:true,fifa:47,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:2.0},
+      {name:'Switzerland',flag:'🇨🇭',conf:'UEFA',host:false,fifa:19,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:2.0},
+      {name:'Bosnia-Herzegovina',flag:'🇧🇦',conf:'UEFA',host:false,fifa:56,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.5},
+      {name:'Qatar',flag:'🇶🇦',conf:'AFC',host:false,fifa:58,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.2},
+    ]},
+    {letter:'C',dates:'Jun 13–25',teams:[
+      {name:'Brazil',flag:'🇧🇷',conf:'CONMEBOL',host:false,fifa:3,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:9.0},
+      {name:'Morocco',flag:'🇲🇦',conf:'CAF',host:false,fifa:14,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:3.0},
+      {name:'Scotland',flag:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',conf:'UEFA',host:false,fifa:38,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.5},
+      {name:'Haiti',flag:'🇭🇹',conf:'CONCACAF',host:false,fifa:83,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.1},
+    ]},
+    {letter:'D',dates:'Jun 12–25',teams:[
+      {name:'United States',flag:'🇺🇸',conf:'CONCACAF',host:true,fifa:11,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:5.0},
+      {name:'Türkiye',flag:'🇹🇷',conf:'UEFA',host:false,fifa:29,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:1.5},
+      {name:'Australia',flag:'🇦🇺',conf:'AFC',host:false,fifa:24,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.8},
+      {name:'Paraguay',flag:'🇵🇾',conf:'CONMEBOL',host:false,fifa:60,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.3},
+    ]},
+    {letter:'E',dates:'Jun 14–26',teams:[
+      {name:'Germany',flag:'🇩🇪',conf:'UEFA',host:false,fifa:12,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:7.5},
+      {name:'Ivory Coast',flag:'🇨🇮',conf:'CAF',host:false,fifa:48,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.8},
+      {name:'Ecuador',flag:'🇪🇨',conf:'CONMEBOL',host:false,fifa:42,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.5},
+      {name:'Curaçao',flag:'🇨🇼',conf:'CONCACAF',host:false,fifa:82,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.1},
+    ]},
+    {letter:'F',dates:'Jun 14–26',teams:[
+      {name:'Netherlands',flag:'🇳🇱',conf:'UEFA',host:false,fifa:6,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:5.0},
+      {name:'Japan',flag:'🇯🇵',conf:'AFC',host:false,fifa:18,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:2.5},
+      {name:'Sweden',flag:'🇸🇪',conf:'UEFA',host:false,fifa:27,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.8},
+      {name:'Tunisia',flag:'🇹🇳',conf:'CAF',host:false,fifa:32,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.3},
+    ]},
+    {letter:'G',dates:'Jun 15–26',teams:[
+      {name:'Belgium',flag:'🇧🇪',conf:'UEFA',host:false,fifa:5,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:5.5},
+      {name:'Egypt',flag:'🇪🇬',conf:'CAF',host:false,fifa:35,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.8},
+      {name:'Iran',flag:'🇮🇷',conf:'AFC',host:false,fifa:20,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.5},
+      {name:'New Zealand',flag:'🇳🇿',conf:'OFC',host:false,fifa:95,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.1},
+    ]},
+    {letter:'H',dates:'Jun 15–26',teams:[
+      {name:'Spain',flag:'🇪🇸',conf:'UEFA',host:false,fifa:1,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:16.0},
+      {name:'Uruguay',flag:'🇺🇾',conf:'CONMEBOL',host:false,fifa:16,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:2.0},
+      {name:'Saudi Arabia',flag:'🇸🇦',conf:'AFC',host:false,fifa:55,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.5},
+      {name:'Cape Verde',flag:'🇨🇻',conf:'CAF',host:false,fifa:71,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.2},
+    ]},
+    {letter:'I',dates:'Jun 16–26',teams:[
+      {name:'France',flag:'🇫🇷',conf:'UEFA',host:false,fifa:2,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:16.0},
+      {name:'Norway',flag:'🇳🇴',conf:'UEFA',host:false,fifa:25,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:3.0},
+      {name:'Senegal',flag:'🇸🇳',conf:'CAF',host:false,fifa:21,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:1.5},
+      {name:'Iraq',flag:'🇮🇶',conf:'AFC',host:false,fifa:62,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.2},
+    ]},
+    {letter:'J',dates:'Jun 16–27',teams:[
+      {name:'Argentina',flag:'🇦🇷',conf:'CONMEBOL',host:false,fifa:4,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:9.0},
+      {name:'Austria',flag:'🇦🇹',conf:'UEFA',host:false,fifa:30,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.8},
+      {name:'Algeria',flag:'🇩🇿',conf:'CAF',host:false,fifa:37,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.5},
+      {name:'Jordan',flag:'🇯🇴',conf:'AFC',host:false,fifa:69,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.2},
+    ]},
+    {letter:'K',dates:'Jun 17–27',teams:[
+      {name:'Portugal',flag:'🇵🇹',conf:'UEFA',host:false,fifa:7,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:8.0},
+      {name:'Colombia',flag:'🇨🇴',conf:'CONMEBOL',host:false,fifa:26,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:1.5},
+      {name:'DR Congo',flag:'🇨🇩',conf:'CAF',host:false,fifa:44,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.4},
+      {name:'Uzbekistan',flag:'🇺🇿',conf:'AFC',host:false,fifa:74,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.2},
+    ]},
+    {letter:'L',dates:'Jun 17–27',teams:[
+      {name:'England',flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',conf:'UEFA',host:false,fifa:8,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:11.0},
+      {name:'Croatia',flag:'🇭🇷',conf:'UEFA',host:false,fifa:10,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:1.5},
+      {name:'Panama',flag:'🇵🇦',conf:'CONCACAF',host:false,fifa:50,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.3},
+      {name:'Ghana',flag:'🇬🇭',conf:'CAF',host:false,fifa:59,pts:0,w:0,d:0,l:0,gf:0,ga:0,polyOdds:0.2},
+    ]},
+  ]
+};
+
+const ALL_TEAMS = WC_DATA.groups.flatMap(g => g.teams.map(t => ({...t, group:g.letter})));
+let currentConf = 'all', currentSearch = '';
+
+function gd(t){return t.gf-t.ga;}
+function gdStr(t){const d=gd(t);if(d>0)return `<span class="gd pos">+${d}</span>`;if(d<0)return `<span class="gd neg">${d}</span>`;return `<span class="gd">0</span>`;}
+
+function getMatchOdds(home, away) {
+  const k1 = `${home}_${away}`;
+  const k2 = `${away}_${home}`;
+  if(MATCH_ODDS[k1]) return {home:MATCH_ODDS[k1].h, draw:MATCH_ODDS[k1].d, away:MATCH_ODDS[k1].a, date:MATCH_ODDS[k1].date, flipped:false};
+  if(MATCH_ODDS[k2]) return {home:MATCH_ODDS[k2].a, draw:MATCH_ODDS[k2].d, away:MATCH_ODDS[k2].h, date:MATCH_ODDS[k2].date, flipped:true};
+  return null;
+}
+
+function renderGroups() {
+  const grid = document.getElementById('groupsGrid');
+  const q = currentSearch.toLowerCase().trim();
+  let html = '';
+  for(const g of WC_DATA.groups) {
+    const teams = g.teams.filter(t => {
+      if(q && !t.name.toLowerCase().includes(q)) return false;
+      if(currentConf !== 'all' && t.conf !== currentConf) return false;
+      return true;
+    });
+    if((q || currentConf !== 'all') && teams.length === 0) continue;
+    const sorted = [...g.teams].sort((a,b) => b.pts !== a.pts ? b.pts-a.pts : gd(b)-gd(a));
+    html += `<div class="group-card">
+      <div class="group-header"><span class="group-letter">Group ${g.letter}</span><span class="group-dates">${g.dates}</span></div>
+      <table class="standings-table">
+        <thead><tr><th style="width:40%">Team</th><th>MP</th><th>W</th><th>D</th><th>L</th><th>GD</th><th class="pts">Pts</th></tr></thead>
+        <tbody>`;
+    sorted.forEach((t,i) => {
+      const zc = i<2?'advance-zone':(i===2?'potential-zone':'');
+      const hl = (q && t.name.toLowerCase().includes(q)) ? 'background:rgba(232,200,74,0.1);' : '';
+      html += `<tr class="team-row ${zc}" style="${hl}" onclick="showTeam('${t.name}')">
+        <td><div class="team-name-cell"><span class="team-flag">${t.flag}</span><div>
+          <div class="team-name">${t.name}${t.host?' <span style="color:var(--accent);font-size:0.6rem;font-weight:700;">HOST</span>':''}</div>
+          <div class="team-sub">FIFA #${t.fifa}</div></div></div></td>
+        <td>${t.w+t.d+t.l}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td>${gdStr(t)}</td><td class="pts">${t.pts}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>
+      <div class="zone-legend">
+        <span><span class="zone-dot" style="background:rgba(34,197,94,0.4)"></span>Advance</span>
+        <span><span class="zone-dot" style="background:rgba(249,115,22,0.4)"></span>Potential 3rd</span>
+      </div></div>`;
+  }
+  grid.innerHTML = html || '<p style="color:var(--muted);padding:2rem;grid-column:1/-1;text-align:center;">No teams found.</p>';
+}
+
+function filterConf(el, conf) {
+  currentConf = conf;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderGroups();
+}
+function filterTeams() {currentSearch=document.getElementById('teamSearch').value;renderGroups();}
+function showHome() {
+  document.getElementById('view-home').classList.add('active');
+  document.getElementById('view-team').classList.remove('active');
+  document.getElementById('breadcrumb').innerHTML = '<span>All Groups</span>';
+}
+function showTeam(name) {
+  const team = ALL_TEAMS.find(t=>t.name===name);
+  if(!team) return;
+  document.getElementById('view-home').classList.remove('active');
+  document.getElementById('view-team').classList.add('active');
+  document.getElementById('breadcrumb').innerHTML = `
+    <span onclick="showHome()" style="cursor:pointer">All Groups</span>
+    <span class="sep">/</span><span>Group ${team.group}</span>
+    <span class="sep">/</span><span class="current">${team.flag} ${team.name}</span>`;
+  window._currentTeam = team;
+  document.getElementById('teamContent').innerHTML = '<div class="loading-state"><div class="spinner"></div>Loading team data…</div>';
+  document.querySelector('.team-page').scrollTop = 0;
+  window.scrollTo(0,0);
+  loadTeamData(team);
+}
+
+async function loadTeamData(team) {
+  try {
+    const groupTeams = WC_DATA.groups.find(g=>g.letter===team.group).teams.map(t=>t.name).join(', ');
+
+    // Step 1: fetch Guardian player guide + squad info via web search
+    const searchRes = await fetch('/api/proxy', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        system: 'You are a football research assistant. Search for information and summarise it clearly. Do not return JSON yet — just a plain text summary.',
+        messages: [{
+          role: 'user',
+          content: `Search for the following about ${team.name} at the 2026 FIFA World Cup:
+1. The Guardian's World Cup 2026 player guide entry for ${team.name} (https://www.theguardian.com/football/ng-interactive/2026/jun/04/world-cup-2026-complete-player-guide) — extract: projected starting XI with formation, key players highlighted, squad list with clubs and ages
+2. Their official 26-man squad submitted to FIFA for the 2026 World Cup
+3. Their manager and recent results (last 5 matches in 2025-2026)
+
+Summarise in plain text: manager name, formation, the 11 projected starters with their positions and clubs, and the full squad list.`
+        }]
+      })
+    });
+    const searchData = await searchRes.json();
+    const researchText = (searchData.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text)
+      .join('\n');
+
+    // Step 2: synthesise research into structured JSON
+    const prompt = `You have the following research about ${team.name} at the 2026 FIFA World Cup (Group ${team.group}: ${groupTeams}):
+
+--- RESEARCH ---
+${researchText}
+--- END RESEARCH ---
+
+Using this research (especially the Guardian's projected lineup and official squad), return a single valid JSON object. No markdown, no preamble — raw JSON only, parseable by JSON.parse().
+
+{
+  "summary":"2 sentence team overview",
+  "manager":"Manager full name",
+  "style":"Playing style in 4 words",
+  "formation":"e.g. 4-3-3",
+  "recentResults":[
+    {"date":"MMM DD","opponent":"Name","score":"X-Y","result":"W","competition":"Comp","home":true}
+  ],
+  "upcomingMatches":[
+    {"date":"Jun DD","opponent":"Name","venue":"City"}
+  ],
+  "lineup":[
+    {"name":"Surname","pos":"GK","role":"GK","x":50,"y":88},
+    {"name":"Surname","pos":"DEF","role":"RB","x":82,"y":68},
+    {"name":"Surname","pos":"DEF","role":"CB","x":62,"y":68},
+    {"name":"Surname","pos":"DEF","role":"CB","x":38,"y":68},
+    {"name":"Surname","pos":"DEF","role":"LB","x":18,"y":68},
+    {"name":"Surname","pos":"MID","role":"CM","x":68,"y":48},
+    {"name":"Surname","pos":"MID","role":"CM","x":50,"y":45},
+    {"name":"Surname","pos":"MID","role":"CM","x":32,"y":48},
+    {"name":"Surname","pos":"FWD","role":"RW","x":78,"y":25},
+    {"name":"Surname","pos":"FWD","role":"ST","x":50,"y":20},
+    {"name":"Surname","pos":"FWD","role":"LW","x":22,"y":25}
+  ],
+  "squad":[
+    {"name":"Full Name","pos":"GK","age":28,"club":"Club","rating":82,"grade":"B","caps":30,"keyPlayer":false}
+  ],
+  "tournamentOdds":{"advanceGroup":75,"makeR16":60,"winTournament":${team.polyOdds}},
+  "groupOdds":{"win":50,"draw":25,"loss":25}
+}
+
+Critical rules:
+- lineup: use EXACTLY the Guardian's projected XI where found in research. All 11 must appear in the squad list. Use surname only in lineup name field.
+- lineup x/y: percentage coords (0-100), origin top-left, y=88 for GK (near bottom), y=20 for forwards (near top). Adjust x/y to match the actual formation shape.
+- squad: exactly 16 players drawn from the official 26-man FIFA squad — use real names, clubs, ages from the research
+- recentResults: exactly 5 real 2025-2026 results
+- upcomingMatches: exactly 3 WC Group ${team.group} matches vs correct opponents
+- rating: 60-99, grade: S+ A B C D
+- JSON must be complete and valid`;
+
+    const synthRes = await fetch('/api/proxy', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        system: 'You are a football data assistant. Return ONLY a single valid JSON object — no markdown fences, no explanation. Your entire response must be parseable by JSON.parse().',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const synthData = await synthRes.json();
+    const text = (synthData.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON object found in synthesis response');
+    const parsed = JSON.parse(jsonMatch[0]);
+    renderTeamPage(team, parsed);
+  } catch(e) {
+    document.getElementById('teamContent').innerHTML = `<div class="error-msg">Failed to load team data: ${e.message}</div>`;
+  }
+}
+
+function getRatingColor(r){
+  if(r>=88)return'#f59e0b';if(r>=83)return'#22c55e';if(r>=78)return'#3b82f6';if(r>=72)return'#8b5cf6';return'#6b7280';
+}
+
+function buildPitchSVG(lineup, formation, teamFlag, teamName) {
+  if(!lineup||lineup.length===0) return '<p style="color:var(--muted);text-align:center;padding:2rem;">Lineup data unavailable</p>';
+  const W=320, H=480;
+  const posColors = {GK:'#f97316',DEF:'#3b82f6',MID:'#a78bfa',FWD:'#22c55e'};
+
+  let players = '';
+  for(const p of lineup) {
+    const cx = (p.x/100)*W;
+    const cy = (p.y/100)*H;
+    const col = posColors[p.pos] || '#8898aa';
+    const esc = (s) => String(s).replace(/'/g, "\\'");
+    players += `
+      <g class="player-dot-group" style="cursor:pointer" onclick="handlePlayerDotClick(event,'${esc(p.name)}','${p.pos}','${p.role||p.pos}','${esc(p.club||'')}',${p.age||0},${p.rating||75},'${esc(teamName)}')">
+        <circle cx="${cx}" cy="${cy}" r="16" fill="${col}" fill-opacity="0.12" stroke="transparent"/>
+        <circle cx="${cx}" cy="${cy}" r="14" fill="${col}" fill-opacity="0.25" stroke="${col}" stroke-width="1.5"/>
+        <circle cx="${cx}" cy="${cy}" r="10" fill="${col}" fill-opacity="0.9"/>
+        <text x="${cx}" y="${cy+3}" class="player-name-label" font-size="7.5">${p.name}</text>
+        <text x="${cx}" y="${cy+16}" class="player-pos-label">${p.role}</text>
+      </g>`;
+  }
+
+  return `<svg class="pitch-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="pitchGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1a4a1a"/>
+        <stop offset="50%" stop-color="#1e5520"/>
+        <stop offset="100%" stop-color="#1a4a1a"/>
+      </linearGradient>
+    </defs>
+    <!-- Pitch background -->
+    <rect width="${W}" height="${H}" fill="url(#pitchGrad)" rx="4"/>
+    <!-- Pitch stripes -->
+    ${[0,1,2,3,4,5].map(i=>`<rect x="0" y="${i*(H/6)}" width="${W}" height="${H/12}" fill="rgba(255,255,255,0.02)"/>`).join('')}
+    <!-- Outline -->
+    <rect x="10" y="10" width="${W-20}" height="${H-20}" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" rx="2"/>
+    <!-- Centre line -->
+    <line x1="10" y1="${H/2}" x2="${W-10}" y2="${H/2}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    <!-- Centre circle -->
+    <circle cx="${W/2}" cy="${H/2}" r="40" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    <circle cx="${W/2}" cy="${H/2}" r="3" fill="rgba(255,255,255,0.4)"/>
+    <!-- Penalty areas -->
+    <rect x="${W*0.2}" y="10" width="${W*0.6}" height="${H*0.18}" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    <rect x="${W*0.2}" y="${H*0.82}" width="${W*0.6}" height="${H*0.18}" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    <!-- Goal areas -->
+    <rect x="${W*0.33}" y="10" width="${W*0.34}" height="${H*0.07}" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <rect x="${W*0.33}" y="${H*0.93}" width="${W*0.34}" height="${H*0.07}" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <!-- Penalty spots -->
+    <circle cx="${W/2}" cy="${H*0.14}" r="2.5" fill="rgba(255,255,255,0.4)"/>
+    <circle cx="${W/2}" cy="${H*0.86}" r="2.5" fill="rgba(255,255,255,0.4)"/>
+    <!-- Players -->
+    ${players}
+    <!-- Direction indicator -->
+    <text x="${W/2}" y="${H-4}" text-anchor="middle" fill="rgba(255,255,255,0.25)" font-size="8" font-family="Inter,sans-serif">ATTACKING DIRECTION ▲</text>
+  </svg>`;
+}
+
+function buildMatchOddsHtml(team) {
+  const groupData = WC_DATA.groups.find(g=>g.letter===team.group);
+  const opponents = groupData.teams.filter(t=>t.name!==team.name);
+  let html = '';
+  for(const opp of opponents) {
+    const odds = getMatchOdds(team.name, opp.name);
+    if(!odds) continue;
+    const teamPct = odds.home;
+    const oppPct = odds.away;
+    const drawPct = odds.draw;
+    const teamFav = teamPct > oppPct;
+    html += `<div class="match-odds-card">
+      <div class="match-header">
+        <div>
+          <div class="match-teams">${team.flag} ${team.name} <span style="color:var(--muted)">vs</span> ${opp.flag} ${opp.name}</div>
+          <div class="match-meta">Group ${team.group} · ${odds.date}</div>
+        </div>
+        <div class="match-pm-badge">Polymarket</div>
+      </div>
+      <div class="odds-bar">
+        <div class="odds-team">
+          <div class="odds-team-name">${team.name}</div>
+          <div class="odds-team-pct ${teamFav?'fav':'dog'}">${teamPct}%</div>
+        </div>
+        <div class="odds-draw-center">
+          <div class="odds-draw-pct">${drawPct}%</div>
+          <div class="odds-draw-lbl">Draw</div>
+        </div>
+        <div class="odds-team">
+          <div class="odds-team-name">${opp.name}</div>
+          <div class="odds-team-pct ${oppPct>teamPct?'fav':'dog'}">${oppPct}%</div>
+        </div>
+      </div>
+      <div class="odds-visual-bar" style="margin-top:0.5rem;">
+        <div class="odds-vis-home" style="width:${teamPct}%"></div>
+        <div class="odds-vis-draw" style="width:${drawPct}%"></div>
+        <div class="odds-vis-away" style="width:${oppPct}%"></div>
+      </div>
+    </div>`;
+  }
+  return html || '<p style="color:var(--muted);font-size:0.82rem;">Odds not yet available.</p>';
+}
+
+function renderTeamPage(team, data) {
+  const gradeClass = g => {
+    if(g==='S+')return'grade-Sp';if(g==='A')return'grade-A';if(g==='B')return'grade-B';if(g==='C')return'grade-C';return'grade-D';
+  };
+  const posOrder=['GK','DEF','MID','FWD'];
+  const sortedSquad=(data.squad||[]).slice().sort((a,b)=>posOrder.indexOf(a.pos)-posOrder.indexOf(b.pos));
+
+  const squadRows = sortedSquad.map((p,i)=>{
+    const color=getRatingColor(p.rating);
+    const rowId = 'sqrow_' + i;
+    const expandId = 'sqexp_' + i;
+    // Encode player data as JSON attrs for the toggle handler
+    const pd = JSON.stringify({name:p.name,pos:p.pos,role:p.pos,club:p.club||'',age:p.age||0,rating:p.rating||75,teamName:team.name});
+    const pdEsc = pd.replace(/"/g,'&quot;');
+    return `<tr class="squad-row" id="${rowId}" onclick="toggleSquadExpand('${rowId}','${expandId}',this)" data-player="${pdEsc}">
+      <td><span class="player-name-td">${p.name}${p.keyPlayer?' ⭐':''}</span><span class="squad-chevron">▾</span></td>
+      <td><span class="pos-badge pos-${p.pos}">${p.pos}</span></td>
+      <td>${p.age}</td>
+      <td class="club-name">${p.club}</td>
+      <td><div class="rating-bar"><span class="rating-num" style="color:${color}">${p.rating}</span>
+        <div class="rating-track"><div class="rating-fill" style="width:${p.rating}%;background:${color}"></div></div></div></td>
+      <td><span class="grade-badge ${gradeClass(p.grade)}">${p.grade}</span></td>
+      <td style="color:var(--muted)">${p.caps}</td>
+    </tr>
+    <tr class="squad-expand-row" id="${expandId}">
+      <td class="squad-expand-cell" colspan="7">
+        <div class="squad-expand-inner" id="${expandId}_inner">
+          <div class="squad-expand-loading"><div class="squad-mini-spinner"></div>Loading scout report…</div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const resultsHtml = (data.recentResults||[]).map(r=>`
+    <div class="result-row">
+      <div class="result-badge ${r.result}">${r.result}</div>
+      <div class="result-teams">
+        <div>${r.home?team.name:r.opponent} <span style="color:var(--muted)">vs</span> ${r.home?r.opponent:team.name}</div>
+        <div class="result-date">${r.date} · <span class="result-comp">${r.competition}</span></div>
+      </div>
+      <div class="result-score">${r.score}</div>
+    </div>`).join('') || '<p style="color:var(--muted);font-size:0.8rem">No data available.</p>';
+
+  const odds = data.tournamentOdds||{};
+  const pitchSvg = buildPitchSVG(data.lineup, data.formation, team.flag, team.name);
+  const matchOddsHtml = buildMatchOddsHtml(team);
+
+  const html = `
+    <div class="team-hero">
+      <div class="team-hero-flag">${team.flag}</div>
+      <div class="team-hero-info">
+        <div class="team-hero-name">${team.name}</div>
+        <div class="team-hero-meta">
+          <span>🏆 Group ${team.group}</span>
+          <span>📍 ${team.conf}</span>
+          <span>🎖 FIFA #${team.fifa}</span>
+          ${team.host?'<span style="color:var(--accent)">🏟 Host</span>':''}
+          <span>👔 ${data.manager||'TBD'}</span>
+          <span>⚽ ${data.formation||''} · ${data.style||''}</span>
+        </div>
+        <div style="margin-top:0.75rem;font-size:0.8rem;color:var(--muted);line-height:1.6;max-width:500px">${data.summary||''}</div>
+      </div>
+      <div class="team-odds-bar">
+        <div class="odds-card">
+          <div class="odds-pct">${(odds.winTournament||team.polyOdds).toFixed(0)}%</div>
+          <div class="odds-label">Win WC</div>
+          <div class="odds-source">Polymarket</div>
+        </div>
+        <div class="odds-card">
+          <div class="odds-pct">${(odds.advanceGroup||50).toFixed(0)}%</div>
+          <div class="odds-label">Advance</div>
+          <div class="odds-source">Est.</div>
+        </div>
+        <div class="odds-card">
+          <div class="odds-pct">${(odds.makeR16||40).toFixed(0)}%</div>
+          <div class="odds-label">R16</div>
+          <div class="odds-source">Est.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="team-layout">
+      <!-- Projected Lineup -->
+      <div class="section-card">
+        <div class="section-header">Projected Starting XI <span class="badge">${data.formation||'4-3-3'}</span></div>
+        <div class="section-body" style="padding:0.75rem;">
+          <div class="pitch-container">${pitchSvg}</div>
+          <div class="lineup-formation">${data.formation||''} Formation</div>
+        </div>
+      </div>
+
+      <!-- Recent Results -->
+      <div class="section-card">
+        <div class="section-header">Recent Results</div>
+        <div class="section-body">${resultsHtml}</div>
+      </div>
+    </div>
+
+    <!-- Group Stage Match Odds — full width -->
+    <div class="section-card full" style="margin-bottom:1.25rem;">
+      <div class="section-header">Group Stage Match Odds <span class="badge">Polymarket · Live</span></div>
+      <div class="section-body" id="teamMatchOdds">${matchOddsHtml}</div>
+    </div>
+
+    <!-- Squad Table — full width -->
+    <div class="section-card full">
+      <div class="section-header">
+        Squad &amp; Player Ratings
+        <div style="display:flex;gap:0.5rem;align-items:center;font-size:0.65rem;color:var(--muted);text-transform:none;letter-spacing:0">
+          <span style="color:#f59e0b">■</span>88+ Elite
+          <span style="color:#22c55e">■</span>83+ Very good
+          <span style="color:#3b82f6">■</span>78+ Good
+          <span style="color:#8b5cf6">■</span>72+ Average
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="squad-table">
+          <thead><tr><th style="width:22%">Player</th><th>Pos</th><th>Age</th><th>Club</th><th>Rating</th><th>Grade</th><th>Caps</th></tr></thead>
+          <tbody>${squadRows}</tbody>
+        </table>
+      </div>
+      <div style="padding:0.6rem 1rem;font-size:0.65rem;color:var(--muted);border-top:1px solid var(--border)">
+        Ratings are AI-estimated on the FIFA video game 60–99 scale. Grades: S+ = World-class · A = Very good · B = Solid starter · C = Squad player · D = Limited
+      </div>
+    </div>`;
+
+  document.getElementById('teamContent').innerHTML = html;
+}
+
+
+
+function handlePlayerDotClick(event, name, pos, role, club, age, rating, teamName) {
+  event.stopPropagation();
+  closePlayerCard();
+  // Use the SVG group element as anchor for positioning
+  const anchor = event.currentTarget;
+  showPlayerCard(name, pos, role, club, age, rating, teamName, anchor);
+}
+// ─── PLAYER CARD (lazy per-click, cached) ────────────────────────────────────
+const playerCache = {};
+
+function positionCard(anchorEl) {
+  const card = document.getElementById('playerCard');
+  const rect = anchorEl.getBoundingClientRect();
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const cardW = 300, cardH = 280;
+  // Prefer right of click, flip left if near edge
+  let left = rect.right + 10;
+  if (left + cardW > vw - 10) left = rect.left - cardW - 10;
+  if (left < 10) left = 10;
+  // Vertical: align to top of click, nudge up if overflows
+  let top = rect.top;
+  if (top + cardH > vh - 10) top = vh - cardH - 10;
+  if (top < 10) top = 10;
+  card.style.left = left + 'px';
+  card.style.top  = top  + 'px';
+}
+
+function closePlayerCard() {
+  const card = document.getElementById('playerCard');
+  card.style.display = 'none';
+}
+
+function showPlayerCard(name, pos, role, club, age, rating, teamName, anchorEl) {
+  const card  = document.getElementById('playerCard');
+  const nameEl = document.getElementById('pcName');
+  const metaEl = document.getElementById('pcMeta');
+  const bodyEl = document.getElementById('pcBody');
+
+  // Show card immediately with header + spinner
+  nameEl.textContent = name;
+  metaEl.textContent = `${pos} · ${role} · ${club} · Age ${age} · ${rating} OVR`;
+  bodyEl.innerHTML = '<div class="pc-spinner"></div>';
+  card.style.display = 'block';
+  positionCard(anchorEl);
+
+  // Served from cache?
+  const cacheKey = `${teamName}__${name}`;
+  if (playerCache[cacheKey]) {
+    renderPlayerCard(playerCache[cacheKey], true);
+    return;
+  }
+
+  // Fetch from API
+  fetchPlayerCard(name, pos, role, club, age, teamName, cacheKey);
+}
+
+async function fetchPlayerCard(name, pos, role, club, age, teamName, cacheKey) {
+  const bodyEl = document.getElementById('pcBody');
+  try {
+    const res = await fetch('/api/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        system: 'You are a football scout. Return ONLY valid JSON, no markdown.',
+        messages: [{
+          role: 'user',
+          content: `Write a concise scout report for ${name}, ${pos}/${role} at ${club} (age ${age}), playing for ${teamName} at the 2026 World Cup.
+
+Return this JSON exactly:
+{
+  "summary": "2 sentences on playing style and role in this team",
+  "strengths": "1 crisp sentence, max 15 words",
+  "weaknesses": "1 crisp sentence, max 15 words",
+  "wcForm": "1 sentence on recent international form / qualifying",
+  "watchFor": "1 sentence on what to look for at this tournament"
+}`
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    playerCache[cacheKey] = parsed;
+    renderPlayerCard(parsed, false);
+  } catch(err) {
+    const bodyEl2 = document.getElementById('pcBody');
+    if(bodyEl2) bodyEl2.innerHTML = `<p style="color:var(--muted);font-size:0.78rem;padding:0.5rem 0">Could not load player data.</p>`;
+  }
+}
+
+function renderPlayerCard(d, fromCache) {
+  const bodyEl = document.getElementById('pcBody');
+  if(!bodyEl) return;
+  // Guard: card may have been closed while fetch was in flight
+  const card = document.getElementById('playerCard');
+  if(card.style.display === 'none') return;
+
+  bodyEl.innerHTML = `
+    ${fromCache ? '<span class="pc-cached-badge">cached</span>' : ''}
+    <div class="pc-summary">${d.summary || ''}</div>
+    <div class="pc-row"><span class="pc-row-label">✦ Strengths</span><span class="pc-row-val">${d.strengths || '—'}</span></div>
+    <div class="pc-row"><span class="pc-row-label">✦ Weaknesses</span><span class="pc-row-val">${d.weaknesses || '—'}</span></div>
+    <div class="pc-row"><span class="pc-row-label">✦ WC Form</span><span class="pc-row-val">${d.wcForm || '—'}</span></div>
+    <div class="pc-row"><span class="pc-row-label">✦ Watch For</span><span class="pc-row-val">${d.watchFor || '—'}</span></div>
+  `;
+}
+
+// Close on outside click
+document.addEventListener('click', function(e) {
+  const card = document.getElementById('playerCard');
+  if(card && card.style.display !== 'none' && !card.contains(e.target)) {
+    // Only close if click was NOT on a player dot (those have their own handler)
+    if(!e.target.closest('.player-dot-group')) closePlayerCard();
+  }
+});
+
+
+function toggleSquadExpand(rowId, expandId, rowEl) {
+  const expandRow = document.getElementById(expandId);
+  const isOpen = expandRow.classList.contains('open');
+
+  if (isOpen) {
+    // Collapse
+    expandRow.classList.remove('open');
+    rowEl.classList.remove('active');
+    return;
+  }
+
+  // Expand
+  expandRow.classList.add('open');
+  rowEl.classList.add('active');
+
+  // Parse player data from row attribute
+  const pd = JSON.parse(rowEl.dataset.player);
+  const cacheKey = pd.teamName + '__' + pd.name;
+  const innerId = expandId + '_inner';
+
+  // Already cached — render immediately
+  if (playerCache[cacheKey]) {
+    renderSquadExpand(innerId, playerCache[cacheKey], true);
+    return;
+  }
+
+  // Fetch (reuses same API call + cache as pitch dots)
+  fetchSquadExpand(pd, cacheKey, innerId);
+}
+
+async function fetchSquadExpand(pd, cacheKey, innerId) {
+  try {
+    const res = await fetch('/api/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        system: 'You are a football scout. Return ONLY valid JSON, no markdown.',
+        messages: [{
+          role: 'user',
+          content: `Write a concise scout report for ${pd.name}, ${pd.pos} at ${pd.club} (age ${pd.age}), playing for ${pd.teamName} at the 2026 World Cup.
+
+Return this JSON exactly:
+{
+  "summary": "2 sentences on playing style and role in this team",
+  "strengths": "1 crisp sentence, max 15 words",
+  "weaknesses": "1 crisp sentence, max 15 words",
+  "wcForm": "1 sentence on recent international form / qualifying",
+  "watchFor": "1 sentence on what to look for at this tournament"
+}`
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    playerCache[cacheKey] = parsed;
+    // Only render if the expand row is still open
+    const inner = document.getElementById(innerId);
+    if (inner) renderSquadExpand(innerId, parsed, false);
+  } catch(err) {
+    const inner = document.getElementById(innerId);
+    if (inner) inner.innerHTML = '<div style="color:var(--muted);font-size:0.76rem;padding:0.25rem 0">Could not load scout report.</div>';
+  }
+}
+
+function renderSquadExpand(innerId, d, fromCache) {
+  const inner = document.getElementById(innerId);
+  if (!inner) return;
+  inner.innerHTML = `
+    <div class="squad-expand-summary">${d.summary || ''}</div>
+    <div class="squad-expand-row-item"><span class="squad-expand-label">✦ Strengths</span><span class="squad-expand-val">${d.strengths || '—'}</span></div>
+    <div class="squad-expand-row-item"><span class="squad-expand-label">✦ Weaknesses</span><span class="squad-expand-val">${d.weaknesses || '—'}</span></div>
+    <div class="squad-expand-row-item"><span class="squad-expand-label">✦ WC Form</span><span class="squad-expand-val">${d.wcForm || '—'}</span></div>
+    <div class="squad-expand-row-item"><span class="squad-expand-label">✦ Watch For</span><span class="squad-expand-val">${d.watchFor || '—'}</span></div>
+    ${fromCache ? '<div style="grid-column:1/-1;font-size:0.6rem;color:var(--accent2);margin-top:0.2rem">cached</div>' : ''}
+  `;
+}
+
+renderGroups();
+fetchLiveOdds();
+</script>
+
+<!-- PLAYER CARD OVERLAY -->
+<div id="playerCard">
+  <div class="pc-header">
+    <div>
+      <div class="pc-name" id="pcName">Player</div>
+      <div class="pc-meta" id="pcMeta"></div>
+    </div>
+    <button class="pc-close" onclick="closePlayerCard()" aria-label="Close">✕</button>
+  </div>
+  <div class="pc-body" id="pcBody"><div class="pc-spinner"></div></div>
+</div>
+</body>
+</html>
