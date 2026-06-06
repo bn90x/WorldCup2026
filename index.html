@@ -665,97 +665,83 @@ async function loadTeamData(team) {
   try {
     const groupTeams = WC_DATA.groups.find(g=>g.letter===team.group).teams.map(t=>t.name).join(', ');
 
-    // Step 1: fetch Guardian player guide + squad info via web search
+    // Step 1: web search — Guardian lineup + official squad + recent results
     const searchRes = await fetch('/api/proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
+        max_tokens: 1500,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        system: 'You are a football research assistant. Search for information and summarise it clearly. Do not return JSON yet — just a plain text summary.',
+        system: 'You are a football research assistant. Be concise — max 800 words total. Return plain text only, no JSON.',
         messages: [{
           role: 'user',
-          content: `Search for the following about ${team.name} at the 2026 FIFA World Cup:
-1. The Guardian's World Cup 2026 player guide entry for ${team.name} (https://www.theguardian.com/football/ng-interactive/2026/jun/04/world-cup-2026-complete-player-guide) — extract: projected starting XI with formation, key players highlighted, squad list with clubs and ages
-2. Their official 26-man squad submitted to FIFA for the 2026 World Cup
-3. Their manager and recent results (last 5 matches in 2025-2026)
+          content: `Search for ${team.name} at the 2026 FIFA World Cup. Find and summarise concisely:
+1. Guardian player guide projected starting XI and formation for ${team.name}: https://www.theguardian.com/football/ng-interactive/2026/jun/04/world-cup-2026-complete-player-guide
+2. Official FIFA 2026 World Cup squad (26 players) with clubs
+3. Manager name and last 5 match results (2025-2026)
 
-Summarise in plain text: manager name, formation, the 11 projected starters with their positions and clubs, and the full squad list.`
+Return a SHORT plain-text summary — manager, formation, 11 starters with position/club, bench players, last 5 scores.`
         }]
       })
     });
     const searchData = await searchRes.json();
-    const researchText = (searchData.content || [])
+    // Truncate research to avoid overflowing synthesis context
+    const rawResearch = (searchData.content || [])
       .filter(b => b.type === 'text')
       .map(b => b.text)
       .join('\n');
+    const researchText = rawResearch.slice(0, 3000); // cap at ~750 tokens
 
-    // Step 2: synthesise research into structured JSON
-    const prompt = `You have the following research about ${team.name} at the 2026 FIFA World Cup (Group ${team.group}: ${groupTeams}):
-
---- RESEARCH ---
-${researchText}
---- END RESEARCH ---
-
-Using this research (especially the Guardian's projected lineup and official squad), return a single valid JSON object. No markdown, no preamble — raw JSON only, parseable by JSON.parse().
-
-{
-  "summary":"2 sentence team overview",
-  "manager":"Manager full name",
-  "style":"Playing style in 4 words",
-  "formation":"e.g. 4-3-3",
-  "recentResults":[
-    {"date":"MMM DD","opponent":"Name","score":"X-Y","result":"W","competition":"Comp","home":true}
-  ],
-  "upcomingMatches":[
-    {"date":"Jun DD","opponent":"Name","venue":"City"}
-  ],
-  "lineup":[
-    {"name":"Surname","pos":"GK","role":"GK","x":50,"y":88},
-    {"name":"Surname","pos":"DEF","role":"RB","x":82,"y":68},
-    {"name":"Surname","pos":"DEF","role":"CB","x":62,"y":68},
-    {"name":"Surname","pos":"DEF","role":"CB","x":38,"y":68},
-    {"name":"Surname","pos":"DEF","role":"LB","x":18,"y":68},
-    {"name":"Surname","pos":"MID","role":"CM","x":68,"y":48},
-    {"name":"Surname","pos":"MID","role":"CM","x":50,"y":45},
-    {"name":"Surname","pos":"MID","role":"CM","x":32,"y":48},
-    {"name":"Surname","pos":"FWD","role":"RW","x":78,"y":25},
-    {"name":"Surname","pos":"FWD","role":"ST","x":50,"y":20},
-    {"name":"Surname","pos":"FWD","role":"LW","x":22,"y":25}
-  ],
-  "squad":[
-    {"name":"Full Name","pos":"GK","age":28,"club":"Club","rating":82,"grade":"B","caps":30,"keyPlayer":false}
-  ],
-  "tournamentOdds":{"advanceGroup":75,"makeR16":60,"winTournament":${team.polyOdds}},
-  "groupOdds":{"win":50,"draw":25,"loss":25}
-}
-
-Critical rules:
-- lineup: use EXACTLY the Guardian's projected XI where found in research. All 11 must appear in the squad list. Use surname only in lineup name field.
-- lineup x/y: percentage coords (0-100), origin top-left, y=88 for GK (near bottom), y=20 for forwards (near top). Adjust x/y to match the actual formation shape.
-- squad: exactly 16 players drawn from the official 26-man FIFA squad — use real names, clubs, ages from the research
-- recentResults: exactly 5 real 2025-2026 results
-- upcomingMatches: exactly 3 WC Group ${team.group} matches vs correct opponents
-- rating: 60-99, grade: S+ A B C D
-- JSON must be complete and valid`;
-
+    // Step 2: synthesise into JSON — use assistant prefill to force JSON start
     const synthRes = await fetch('/api/proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        system: 'You are a football data assistant. Return ONLY a single valid JSON object — no markdown fences, no explanation. Your entire response must be parseable by JSON.parse().',
-        messages: [{ role: 'user', content: prompt }]
+        max_tokens: 5000,
+        system: 'You are a football data assistant. Output ONLY raw JSON — no markdown, no explanation, no text before or after the JSON object.',
+        messages: [
+          {
+            role: 'user',
+            content: `Research summary for ${team.name} (Group ${team.group}: ${groupTeams}):
+
+${researchText}
+
+Convert this into a JSON object matching this exact structure. Use the Guardian's projected XI for the lineup. All lineup players must also appear in squad. Keep JSON tight — no extra whitespace.
+
+{"summary":"string","manager":"string","style":"string","formation":"string","recentResults":[{"date":"MMM DD","opponent":"string","score":"X-Y","result":"W","competition":"string","home":true}],"upcomingMatches":[{"date":"Jun DD","opponent":"string","venue":"string"}],"lineup":[{"name":"Surname","pos":"GK","role":"GK","x":50,"y":88,"club":"Club","age":28,"rating":80},{"name":"Surname","pos":"DEF","role":"RB","x":82,"y":68,"club":"Club","age":28,"rating":80},{"name":"Surname","pos":"DEF","role":"CB","x":62,"y":68,"club":"Club","age":28,"rating":80},{"name":"Surname","pos":"DEF","role":"CB","x":38,"y":68,"club":"Club","age":28,"rating":80},{"name":"Surname","pos":"DEF","role":"LB","x":18,"y":68,"club":"Club","age":28,"rating":80},{"name":"Surname","pos":"MID","role":"CM","x":68,"y":48,"club":"Club","age":28,"rating":80},{"name":"Surname","pos":"MID","role":"CM","x":50,"y":45,"club":"Club","age":28,"rating":80},{"name":"Surname","pos":"MID","role":"CM","x":32,"y":48,"club":"Club","age":28,"rating":80},{"name":"Surname","pos":"FWD","role":"RW","x":78,"y":25,"club":"Club","age":28,"rating":80},{"name":"Surname","pos":"FWD","role":"ST","x":50,"y":20,"club":"Club","age":28,"rating":80},{"name":"Surname","pos":"FWD","role":"LW","x":22,"y":25,"club":"Club","age":28,"rating":80}],"squad":[{"name":"Full Name","pos":"GK","age":28,"club":"Club","rating":82,"grade":"B","caps":30,"keyPlayer":false}],"tournamentOdds":{"advanceGroup":75,"makeR16":60,"winTournament":${team.polyOdds}},"groupOdds":{"win":50,"draw":25,"loss":25}}
+
+Rules: recentResults exactly 5, upcomingMatches exactly 3 vs correct Group ${team.group} opponents, squad exactly 16 players, rating 60-99, grade S+/A/B/C/D.`
+          },
+          {
+            role: 'assistant',
+            content: '{'  // prefill forces model to start JSON immediately, no preamble
+          }
+        ]
       })
     });
+
     const synthData = await synthRes.json();
-    const text = (synthData.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-    const clean = text.replace(/```json|```/g, '').trim();
-    const jsonMatch = clean.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No JSON object found in synthesis response');
-    const parsed = JSON.parse(jsonMatch[0]);
+    const rawText = (synthData.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+
+    // Reconstruct: prepend the '{' we used as prefill
+    const fullText = '{' + rawText;
+    const clean = fullText.replace(/```json|```/g, '').trim();
+
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch(parseErr) {
+      // Try extracting the largest JSON object if there's trailing text
+      const jsonMatch = clean.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error('Raw synthesis response:', clean.slice(0, 500));
+        throw new Error('Could not parse JSON. Raw: ' + clean.slice(0, 200));
+      }
+      parsed = JSON.parse(jsonMatch[0]);
+    }
+
     renderTeamPage(team, parsed);
   } catch(e) {
     document.getElementById('teamContent').innerHTML = `<div class="error-msg">Failed to load team data: ${e.message}</div>`;
