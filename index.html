@@ -461,8 +461,8 @@ async function fetchLiveOdds() {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 3000,
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         system: 'You are a data extraction assistant. Fetch the exact URL provided and extract match odds. Return ONLY a valid JSON object — no markdown, no explanation.',
         messages: [{
@@ -1026,7 +1026,7 @@ async function fetchPlayerCard(name, pos, role, club, age, teamName, cacheKey) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 1000,
         system: 'You are a football scout. Return ONLY a valid JSON object. No markdown fences, no explanation, no text before or after the JSON.',
         messages: [{
@@ -1113,7 +1113,7 @@ async function fetchSquadExpand(pd, cacheKey, innerId) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 1000,
         system: 'You are a football scout. Return ONLY a valid JSON object. No markdown fences, no explanation, no text before or after the JSON.',
         messages: [{
@@ -1151,7 +1151,8 @@ function renderSquadExpand(innerId, d, fromCache) {
 }
 
 renderGroups();
-fetchLiveOdds();
+// Delay odds fetch 10s to avoid competing with team data calls at load time
+setTimeout(fetchLiveOdds, 10000);
 </script>
 
 <!-- PLAYER CARD OVERLAY -->
