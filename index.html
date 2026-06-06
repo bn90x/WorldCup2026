@@ -330,7 +330,7 @@
       <div class="home-stat"><div class="num">104</div><div class="lbl">Matches</div></div>
       <div class="home-stat"><div class="num">16</div><div class="lbl">Venues</div></div>
     </div>
-    <div style="margin-top:1.25rem;position:relative;">
+    <div id="prepopPanel" style="display:none;margin-top:1.25rem;position:relative;">
       <button onclick="prepopulateAll()" id="prepopBtn"
         style="background:rgba(232,200,74,0.15);border:1px solid rgba(232,200,74,0.35);color:var(--accent);
                font-family:inherit;font-size:0.75rem;font-weight:600;padding:0.4rem 1.25rem;
@@ -408,6 +408,40 @@ async function sbSet(teamName, groupLetter, data) {
     });
   } catch(e) {
     console.warn('Supabase write failed:', e.message);
+  }
+}
+
+async function sbGetPlayer(cacheKey) {
+  try {
+    const res = await fetch(
+      SUPABASE_URL + '/rest/v1/players?id=eq.' + encodeURIComponent(cacheKey) + '&select=data,fetched_at',
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
+    );
+    const rows = await res.json();
+    if (!rows || rows.length === 0) return null;
+    const ageHours = (Date.now() - new Date(rows[0].fetched_at).getTime()) / 3600000;
+    if (ageHours > CACHE_MAX_AGE_HOURS) return null;
+    return rows[0].data;
+  } catch(e) {
+    console.warn('Supabase player read failed:', e.message);
+    return null;
+  }
+}
+
+async function sbSetPlayer(cacheKey, teamId, data) {
+  try {
+    await fetch(SUPABASE_URL + '/rest/v1/players', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ id: cacheKey, team_id: teamId, data: data, fetched_at: new Date().toISOString() })
+    });
+  } catch(e) {
+    console.warn('Supabase player write failed:', e.message);
   }
 }
 
@@ -1074,15 +1108,23 @@ function showPlayerCard(name, pos, role, club, age, rating, teamName, anchorEl) 
   card.style.display = 'block';
   positionCard(anchorEl);
 
-  // Served from cache?
-  const cacheKey = `${teamName}__${name}`;
+  const cacheKey = teamName + '__' + name;
+
+  // 1. In-memory cache (instant)
   if (playerCache[cacheKey]) {
     renderPlayerCard(playerCache[cacheKey], true);
     return;
   }
 
-  // Fetch from API
-  fetchPlayerCard(name, pos, role, club, age, teamName, cacheKey);
+  // 2. Supabase cache (~200ms, persists across sessions)
+  sbGetPlayer(cacheKey).then(cached => {
+    if (cached) {
+      playerCache[cacheKey] = cached;
+      renderPlayerCard(cached, true);
+    } else {
+      fetchPlayerCard(name, pos, role, club, age, teamName, cacheKey);
+    }
+  });
 }
 
 async function fetchPlayerCard(name, pos, role, club, age, teamName, cacheKey) {
@@ -1108,10 +1150,11 @@ async function fetchPlayerCard(name, pos, role, club, age, teamName, cacheKey) {
     if (!jsonMatch) throw new Error('No JSON: ' + text.slice(0, 100));
     const parsed = JSON.parse(jsonMatch[0]);
     playerCache[cacheKey] = parsed;
+    sbSetPlayer(cacheKey, teamName, parsed); // async, non-blocking
     renderPlayerCard(parsed, false);
   } catch(err) {
     const bodyEl2 = document.getElementById('pcBody');
-    if(bodyEl2) bodyEl2.innerHTML = `<p style="color:var(--muted);font-size:0.78rem;padding:0.5rem 0">Could not load player data: ${err.message}</p>`;
+    if(bodyEl2) bodyEl2.innerHTML = '<p style="color:var(--muted);font-size:0.78rem;padding:0.5rem 0">Could not load player data: ' + err.message + '</p>';
   }
 }
 
@@ -1162,14 +1205,21 @@ function toggleSquadExpand(rowId, expandId, rowEl) {
   const cacheKey = pd.teamName + '__' + pd.name;
   const innerId = expandId + '_inner';
 
-  // Already cached — render immediately
+  // 1. In-memory cache (instant)
   if (playerCache[cacheKey]) {
     renderSquadExpand(innerId, playerCache[cacheKey], true);
     return;
   }
 
-  // Fetch (reuses same API call + cache as pitch dots)
-  fetchSquadExpand(pd, cacheKey, innerId);
+  // 2. Supabase cache (~200ms, persists across sessions)
+  sbGetPlayer(cacheKey).then(cached => {
+    if (cached) {
+      playerCache[cacheKey] = cached;
+      renderSquadExpand(innerId, cached, true);
+    } else {
+      fetchSquadExpand(pd, cacheKey, innerId);
+    }
+  });
 }
 
 async function fetchSquadExpand(pd, cacheKey, innerId) {
@@ -1195,11 +1245,12 @@ async function fetchSquadExpand(pd, cacheKey, innerId) {
     if (!jsonMatch) throw new Error('No JSON: ' + text.slice(0, 100));
     const parsed = JSON.parse(jsonMatch[0]);
     playerCache[cacheKey] = parsed;
+    sbSetPlayer(cacheKey, pd.teamName, parsed); // async, non-blocking
     const inner = document.getElementById(innerId);
     if (inner) renderSquadExpand(innerId, parsed, false);
   } catch(err) {
     const inner = document.getElementById(innerId);
-    if (inner) inner.innerHTML = `<div style="color:var(--muted);font-size:0.76rem;padding:0.25rem 0">Could not load scout report: ${err.message}</div>`;
+    if (inner) inner.innerHTML = '<div style="color:var(--muted);font-size:0.76rem;padding:0.25rem 0">Could not load scout report: ' + err.message + '</div>';
   }
 }
 function renderSquadExpand(innerId, d, fromCache) {
@@ -1240,8 +1291,59 @@ async function prepopulateAll() {
     }
     await new Promise(r => setTimeout(r, 4000));
   }
-  btn.textContent = '✅ Done';
-  status.textContent = `${done} fetched, ${skipped} already cached, ${failed} failed`;
+  btn.textContent = '✅ Teams done — fetching players…';
+  status.textContent = done + ' teams fetched, ' + skipped + ' cached, ' + failed + ' failed. Now pre-fetching player scout reports…';
+
+  // Pre-fetch scout reports for all players across all cached teams
+  let pDone = 0, pSkipped = 0, pFailed = 0;
+  for (const team of allTeams) {
+    const teamData = teamDataCache[team.name];
+    if (!teamData || !teamData.squad) continue;
+    for (const player of teamData.squad) {
+      const cacheKey = team.name + '__' + player.name;
+      // Skip if already in Supabase
+      const existing = await sbGetPlayer(cacheKey);
+      if (existing) {
+        playerCache[cacheKey] = existing;
+        pSkipped++;
+        status.textContent = 'Players: ' + (pDone+pSkipped+pFailed) + ' done (' + pSkipped + ' cached)…';
+        continue;
+      }
+      status.textContent = 'Fetching player: ' + player.name + ' (' + team.name + ')…';
+      try {
+        const res = await fetch('/api/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 1000,
+            system: 'You are a football scout. Return ONLY a valid JSON object. No markdown, no explanation.',
+            messages: [{
+              role: 'user',
+              content: 'Scout report for ' + player.name + ', ' + player.pos + ' at ' + (player.club||'unknown club') + ' (age ' + (player.age||'?') + '), playing for ' + team.name + ' at the 2026 World Cup. Return raw JSON only: {"summary":"2 sentences on style and role","strengths":"max 15 words","weaknesses":"max 15 words","wcForm":"1 sentence on recent form","watchFor":"1 sentence for this tournament"}'
+            }]
+          })
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+        const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+        const jsonMatch = text.replace(/```json|```/g,'').match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('No JSON');
+        const parsed = JSON.parse(jsonMatch[0]);
+        playerCache[cacheKey] = parsed;
+        sbSetPlayer(cacheKey, team.name, parsed);
+        pDone++;
+      } catch(e) {
+        console.warn('Player fetch failed:', player.name, e.message);
+        pFailed++;
+      }
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+
+  btn.textContent = '✅ All done';
+  btn.disabled = false;
+  status.textContent = 'Teams: ' + done + ' fetched, ' + skipped + ' cached. Players: ' + pDone + ' fetched, ' + pSkipped + ' cached, ' + pFailed + ' failed.';
 }
 
 async function loadAndCacheTeam(team) {
@@ -1270,6 +1372,20 @@ async function loadAndCacheTeam(team) {
   sbSet(team.name, team.group, parsed);
   return parsed;
 }
+
+// ─── ADMIN SHORTCUT: Shift+P toggles pre-populate panel ─────────────────────
+document.addEventListener('keydown', function(e) {
+  if (e.shiftKey && e.key === 'P') {
+    const panel = document.getElementById('prepopPanel');
+    if (!panel) return;
+    const visible = panel.style.display !== 'none';
+    panel.style.display = visible ? 'none' : 'block';
+    if (!visible) {
+      // Scroll hero into view so button is visible
+      panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+});
 
 renderGroups();
 // Delay odds fetch 10s to avoid competing with team data calls at load time
