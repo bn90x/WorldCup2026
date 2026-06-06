@@ -330,6 +330,15 @@
       <div class="home-stat"><div class="num">104</div><div class="lbl">Matches</div></div>
       <div class="home-stat"><div class="num">16</div><div class="lbl">Venues</div></div>
     </div>
+    <div style="margin-top:1.25rem;position:relative;">
+      <button onclick="prepopulateAll()" id="prepopBtn"
+        style="background:rgba(232,200,74,0.15);border:1px solid rgba(232,200,74,0.35);color:var(--accent);
+               font-family:inherit;font-size:0.75rem;font-weight:600;padding:0.4rem 1.25rem;
+               border-radius:8px;cursor:pointer;letter-spacing:0.5px;transition:all 0.2s;">
+        ⚡ Pre-populate all 48 teams
+      </button>
+      <div id="prepopStatus" style="font-size:0.7rem;color:var(--muted);margin-top:0.4rem;"></div>
+    </div>
   </div>
   <div class="groups-container">
     <div class="search-bar">
@@ -356,6 +365,52 @@
 </div>
 
 <script>
+// ─── SUPABASE CONFIG ─────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://fuyveeetebmyhadplqji.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1eXZlZWV0ZWJteWhhZHBscWppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3NjQ4NjQsImV4cCI6MjA5NjM0MDg2NH0.3NPzt4FFxDtGmsM7IL4AfjvNqBnbFqLNxqZnIDJv56M';
+const CACHE_MAX_AGE_HOURS = 24;
+
+async function sbGet(teamName) {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/teams?id=eq.${encodeURIComponent(teamName)}&select=data,fetched_at`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+    );
+    const rows = await res.json();
+    if (!rows || rows.length === 0) return null;
+    const row = rows[0];
+    // Check freshness
+    const ageHours = (Date.now() - new Date(row.fetched_at).getTime()) / 3600000;
+    if (ageHours > CACHE_MAX_AGE_HOURS) return null;
+    return row.data;
+  } catch(e) {
+    console.warn('Supabase read failed:', e.message);
+    return null;
+  }
+}
+
+async function sbSet(teamName, groupLetter, data) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/teams`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({
+        id: teamName,
+        group_letter: groupLetter,
+        data: data,
+        fetched_at: new Date().toISOString()
+      })
+    });
+  } catch(e) {
+    console.warn('Supabase write failed:', e.message);
+  }
+}
+
 // ─── MATCH ODDS STATUS BAR ───
 // Injected into header after DOM ready
 
@@ -658,13 +713,22 @@ function showTeam(name) {
   loadTeamData(team);
 }
 
-// Cache loaded team data — revisiting a team is instant and costs zero tokens
+// In-memory cache — instant for same session
 const teamDataCache = {};
 
 async function loadTeamData(team) {
-  // Serve from cache if available
+  // 1. In-memory cache (instant)
   if (teamDataCache[team.name]) {
     renderTeamPage(team, teamDataCache[team.name]);
+    return;
+  }
+
+  // 2. Supabase cache (fast, persists across sessions)
+  const cached = await sbGet(team.name);
+  if (cached) {
+    console.log('[WC2026] Supabase cache hit:', team.name);
+    teamDataCache[team.name] = cached;
+    renderTeamPage(team, cached);
     return;
   }
 
@@ -721,8 +785,9 @@ Rules:
 
     const parsed = JSON.parse(jsonMatch[0]);
 
-    // Cache for instant revisits
+    // Store in memory and Supabase
     teamDataCache[team.name] = parsed;
+    sbSet(team.name, team.group, parsed); // async, non-blocking
 
     renderTeamPage(team, parsed);
   } catch(e) {
@@ -1148,6 +1213,62 @@ function renderSquadExpand(innerId, d, fromCache) {
     <div class="squad-expand-row-item"><span class="squad-expand-label">✦ Watch For</span><span class="squad-expand-val">${d.watchFor || '—'}</span></div>
     ${fromCache ? '<div style="grid-column:1/-1;font-size:0.6rem;color:var(--accent2);margin-top:0.2rem">cached</div>' : ''}
   `;
+}
+
+async function prepopulateAll() {
+  const btn = document.getElementById('prepopBtn');
+  const status = document.getElementById('prepopStatus');
+  btn.disabled = true;
+  btn.textContent = 'Pre-populating…';
+  const allTeams = WC_DATA.groups.flatMap(g => g.teams.map(t => ({...t, group: g.letter})));
+  let done = 0, skipped = 0, failed = 0;
+  for (const team of allTeams) {
+    const existing = await sbGet(team.name);
+    if (existing) {
+      skipped++;
+      status.textContent = `Checking… ${done+skipped+failed}/${allTeams.length} (${skipped} already cached)`;
+      teamDataCache[team.name] = existing;
+      continue;
+    }
+    status.textContent = `Fetching ${team.flag} ${team.name}… (${done+skipped+failed}/${allTeams.length})`;
+    try {
+      await loadAndCacheTeam(team);
+      done++;
+    } catch(e) {
+      console.warn('Failed:', team.name, e.message);
+      failed++;
+    }
+    await new Promise(r => setTimeout(r, 4000));
+  }
+  btn.textContent = '✅ Done';
+  status.textContent = `${done} fetched, ${skipped} already cached, ${failed} failed`;
+}
+
+async function loadAndCacheTeam(team) {
+  const groupTeams = WC_DATA.groups.find(g=>g.letter===team.group).teams.map(t=>t.name).join(', ');
+  const res = await fetch('/api/proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4000,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      system: 'You are a football data assistant. Fetch the exact URL provided and return ONLY a raw JSON object parseable by JSON.parse(). No markdown, no explanation.',
+      messages: [{
+        role: 'user',
+        content: 'Fetch https://www.theguardian.com/football/ng-interactive/2026/jun/04/world-cup-2026-complete-player-guide and find the ' + team.name + ' section. Return ONLY this JSON for ' + team.name + ' (Group ' + team.group + ': ' + groupTeams + '):\n{"summary":"2 sentences","manager":"name","style":"4 words","formation":"4-3-3","recentResults":[{"date":"MMM DD","opponent":"x","score":"1-0","result":"W","competition":"x","home":true}],"upcomingMatches":[{"date":"Jun DD","opponent":"x","venue":"City"}],"lineup":[{"name":"Surname","pos":"GK","role":"GK","x":50,"y":88,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"DEF","role":"RB","x":82,"y":68,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"DEF","role":"CB","x":62,"y":68,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"DEF","role":"CB","x":38,"y":68,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"DEF","role":"LB","x":18,"y":68,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"MID","role":"CM","x":68,"y":48,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"MID","role":"CM","x":50,"y":45,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"MID","role":"CM","x":32,"y":48,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"FWD","role":"RW","x":78,"y":25,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"FWD","role":"ST","x":50,"y":20,"club":"x","age":28,"rating":80},{"name":"Surname","pos":"FWD","role":"LW","x":22,"y":25,"club":"x","age":28,"rating":80}],"squad":[{"name":"Full Name","pos":"GK","age":28,"club":"x","rating":82,"grade":"B","caps":30,"keyPlayer":false}],"tournamentOdds":{"advanceGroup":75,"makeR16":60,"winTournament":' + team.polyOdds + '},"groupOdds":{"win":50,"draw":25,"loss":25}}\nRules: 11 lineup players from Guardian XI, 16 squad players, 5 recentResults (real 2025-2026), 3 upcomingMatches vs Group ' + team.group + ' opponents, rating 60-99, grade S+ A B C D.'
+      }]
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+  const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  const jsonMatch = text.replace(/```json|```/g,'').match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('No JSON returned for ' + team.name);
+  const parsed = JSON.parse(jsonMatch[0]);
+  teamDataCache[team.name] = parsed;
+  sbSet(team.name, team.group, parsed);
+  return parsed;
 }
 
 renderGroups();
