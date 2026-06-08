@@ -368,21 +368,15 @@
 // ─── SUPABASE CONFIG ─────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://fuyveeetebmyhadplqji.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1eXZlZWV0ZWJteWhhZHBscWppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3NjQ4NjQsImV4cCI6MjA5NjM0MDg2NH0.3NPzt4FFxDtGmsM7IL4AfjvNqBnbFqLNxqZnIDJv56M';
-const CACHE_MAX_AGE_HOURS = 24;
-
 async function sbGet(teamName) {
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/teams?id=eq.${encodeURIComponent(teamName)}&select=data,fetched_at`,
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      SUPABASE_URL + '/rest/v1/teams?id=eq.' + encodeURIComponent(teamName) + '&select=data',
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
     );
     const rows = await res.json();
     if (!rows || rows.length === 0) return null;
-    const row = rows[0];
-    // Check freshness
-    const ageHours = (Date.now() - new Date(row.fetched_at).getTime()) / 3600000;
-    if (ageHours > CACHE_MAX_AGE_HOURS) return null;
-    return row.data;
+    return rows[0].data;
   } catch(e) {
     console.warn('Supabase read failed:', e.message);
     return null;
@@ -414,13 +408,11 @@ async function sbSet(teamName, groupLetter, data) {
 async function sbGetPlayer(cacheKey) {
   try {
     const res = await fetch(
-      SUPABASE_URL + '/rest/v1/players?id=eq.' + encodeURIComponent(cacheKey) + '&select=data,fetched_at',
+      SUPABASE_URL + '/rest/v1/players?id=eq.' + encodeURIComponent(cacheKey) + '&select=data',
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
     );
     const rows = await res.json();
     if (!rows || rows.length === 0) return null;
-    const ageHours = (Date.now() - new Date(rows[0].fetched_at).getTime()) / 3600000;
-    if (ageHours > CACHE_MAX_AGE_HOURS) return null;
     return rows[0].data;
   } catch(e) {
     console.warn('Supabase player read failed:', e.message);
